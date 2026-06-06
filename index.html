@@ -526,7 +526,25 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzTfd6CymNq1FgKcdHdo
 const SECRET_TOKEN = 'enervue-token-2569'; // ต้องตรงกับใน settings sheet
 
 // ── FARM COLORS ──────────────────────────────────────────────
-const FARM_COLORS = ['#38bdf8','#4ade80','#fbbf24','#f472b6','#a78bfa'];
+// ── FARM COLORS — 5 สีชัดเจน ต่างกันมาก ──────────────────────
+const FARM_COLORS = [
+  '#22d3ee',  // ฟ้าสว่าง  — ไร่สาม
+  '#4ade80',  // เขียว     — ศปป.หาดเจ้า
+  '#f97316',  // ส้ม       — หาดเจ้า
+  '#e879f9',  // ม่วงสด    — เพชรบุรี
+  '#fbbf24',  // เหลือง    — หัวกุญแจ
+];
+
+// lock สีกับ CA No. ตายตัว — ไม่เปลี่ยนไม่ว่าจะ filter อะไร
+const FARM_COLOR_MAP = {
+  '020002585465': '#22d3ee',  // ไร่สาม        — ฟ้า
+  '020018801218': '#4ade80',  // ศปป.หาดเจ้า   — เขียว
+  '020004256878': '#f97316',  // หาดเจ้า       — ส้ม
+  '020003675011': '#e879f9',  // เพชรบุรี      — ม่วง
+  '020002616437': '#fbbf24',  // หัวกุญแจ      — เหลือง
+};
+
+const getFarmColor = (ca) => FARM_COLOR_MAP[String(ca)] || FARM_COLORS[0];
 const MONTHS_TH = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const MONTHS_EN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
@@ -946,10 +964,10 @@ function OverviewTab({ bills, meters, settings, lang }) {
             <div style={{ color:'var(--text-2)', fontSize:'14px' }}>ยังไม่มีข้อมูล — ไปที่ "Import PDF" เพื่อเพิ่มบิล</div>
           </div>
         ) : latestBills.map((b, i) => {
-          const meter = meterMap[b.ca_no] || {};
+          const meter = meterMap[String(b.ca_no)] || {};
           const fname = meter.farm_name || b.farm_name || b.ca_no;
           const grade = calcTouGrade(Number(b.peak_kwh||0), Number(b.offpeak_kwh||0), Number(b.holiday_kwh||0));
-          const color = FARM_COLORS[i % FARM_COLORS.length];
+          const color = getFarmColor(b.ca_no);
           return (
             <div key={b.ca_no || i} className="farm-card" style={{ '--farm-color': color }}>
               <div style={{ position:'absolute', top:0, bottom:0, left:0, width:3, background:color, borderRadius:'var(--r-lg) 0 0 var(--r-lg)' }} />
@@ -1047,7 +1065,7 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
     return cas.map(ca => ({
       ca,
       label: meterMap[ca]?.farm_name || bills.find(b => String(b.ca_no)===ca)?.farm_name || ca,
-      color: FARM_COLORS[allCaList.indexOf(ca) >= 0 ? allCaList.indexOf(ca) : 0]
+      color: getFarmColor(ca)
     }));
   }, [filtered, meterMap, bills, allCaList]);
 
@@ -1095,12 +1113,13 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
     // fallback: แสดง kwh_total รายฟาร์ม
     const byFarm = {};
     filtered.forEach(b => {
-      const fname = meterMap[b.ca_no]?.farm_name || b.farm_name || b.ca_no;
-      byFarm[b.ca_no] = { name: fname, value: (byFarm[b.ca_no]?.value||0) + Number(b.kwh_total||0) };
+      const ca = String(b.ca_no);
+      const fname = meterMap[ca]?.farm_name || b.farm_name || ca;
+      byFarm[ca] = { ca, name: fname, value: (byFarm[ca]?.value||0) + Number(b.kwh_total||0) };
     });
-    return Object.values(byFarm).map((item, i) => ({
+    return Object.values(byFarm).map(item => ({
       ...item,
-      color: FARM_COLORS[i % FARM_COLORS.length]
+      color: getFarmColor(item.ca)
     })).filter(d => d.value > 0);
   }, [filtered, meterMap]);
 
@@ -1110,7 +1129,7 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
     filtered.forEach(b => {
       const ca    = String(b.ca_no);
       const fname = meterMap[ca]?.farm_name || b.farm_name || ca;
-      if (!r[ca]) r[ca] = { name: fname, thb:0, kwh:0 };
+      if (!r[ca]) r[ca] = { ca, name: fname, thb:0, kwh:0 };
       r[ca].thb += Number(b.total_thb||0);
       r[ca].kwh += Number(b.kwh_total||0);
     });
@@ -1246,9 +1265,10 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
                 const totalAll = rankData.reduce((s,x) => s+x.thb, 0);
                 const pct = totalAll > 0 ? (r.thb/totalAll*100) : 0;
                 const unitCost = r.kwh > 0 ? r.thb/r.kwh : 0;
+                const color = getFarmColor(r.ca);
                 return (
                   <tr key={i}>
-                    <td><span style={{ width:22, height:22, borderRadius:'50%', background:FARM_COLORS[i], display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#000' }}>{i+1}</span></td>
+                    <td><span style={{ width:22, height:22, borderRadius:'50%', background:color, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#000' }}>{i+1}</span></td>
                     <td><span style={{ fontWeight:500, color:'var(--text-1)' }}>{r.name}</span></td>
                     <td className="num">{fmt.thb(r.thb)}</td>
                     <td className="num">{fmt.num(Math.round(r.kwh))}</td>
@@ -1256,7 +1276,7 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
                     <td>
                       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                         <div className="progress-bar" style={{ flex:1 }}>
-                          <div className="progress-fill" style={{ width:`${pct}%`, background:FARM_COLORS[i] }} />
+                          <div className="progress-fill" style={{ width:`${pct}%`, background:color }} />
                         </div>
                         <span style={{ fontSize:11, color:'var(--text-3)', minWidth:35 }}>{pct.toFixed(1)}%</span>
                       </div>
@@ -1272,19 +1292,194 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
   );
 }
 
+// ── Manual Entry Form ─────────────────────────────────────────
+function ManualEntryForm({ meters, onSave, onClose, toast }) {
+  const meterList = meters.length ? meters : [
+    { ca_no:'020002585465', farm_name:'ศูนย์วิจัยไร่สาม' },
+    { ca_no:'020018801218', farm_name:'ศูนย์ปรับปรุงพันธุ์สัตว์น้ำหาดเจ้า' },
+    { ca_no:'020004256878', farm_name:'ศูนย์วิจัยหาดเจ้า' },
+    { ca_no:'020003675011', farm_name:'ศูนย์วิจัยเพชรบุรี' },
+    { ca_no:'020002616437', farm_name:'ศูนย์วิจัยหัวกุญแจ' },
+  ];
+  const now = new Date();
+  const thYear = now.getFullYear() + 543;
+  const [form, setForm] = useState({
+    ca_no:        meterList[0]?.ca_no || '',
+    year:         String(thYear),
+    month:        String(now.getMonth() + 1),
+    total_thb:    '',
+    kwh_total:    '',
+    peak_kw:      '',
+    ft_rate:      '0.1623',
+    peak_kwh:     '',
+    offpeak_kwh:  '',
+    holiday_kwh:  '',
+    base_thb:     '',
+    ft_thb:       '',
+    vat_thb:      '',
+    pf_penalty_thb: '0',
+    invoice_no:   '',
+  });
+  const [saving, setSaving] = useState(false);
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const num = v => parseFloat(String(v).replace(/,/g,'')) || 0;
+
+  const selectedMeter = meterList.find(m => m.ca_no === form.ca_no) || meterList[0];
+
+  const handleSave = async () => {
+    if (!form.ca_no || !form.year || !form.month || !form.total_thb || !form.kwh_total) {
+      toast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', 'warning'); return;
+    }
+    setSaving(true);
+    const invoice = form.invoice_no || `MAN-${form.ca_no.slice(-6)}-${form.year}-${String(form.month).padStart(2,'0')}`;
+    const data = {
+      invoice_no:     invoice,
+      ca_no:          form.ca_no,
+      year:           parseInt(form.year),
+      month:          parseInt(form.month),
+      farm_name:      selectedMeter?.farm_name || form.ca_no,
+      location:       selectedMeter?.address || '',
+      total_thb:      num(form.total_thb),
+      base_thb:       num(form.base_thb),
+      ft_thb:         num(form.ft_thb),
+      vat_thb:        num(form.vat_thb),
+      pf_penalty_thb: num(form.pf_penalty_thb),
+      kwh_total:      num(form.kwh_total),
+      peak_kwh:       num(form.peak_kwh),
+      offpeak_kwh:    num(form.offpeak_kwh),
+      holiday_kwh:    num(form.holiday_kwh),
+      peak_kw:        num(form.peak_kw),
+      ft_rate:        num(form.ft_rate),
+      multiplier:     selectedMeter?.multiplier || 1200,
+      meter_type:     selectedMeter?.meter_type || '',
+      voltage:        selectedMeter?.voltage || '22-33 KV',
+      _valid: true,
+    };
+    await onSave(data);
+    setSaving(false);
+  };
+
+  const Inp = ({ label, fkey, required, placeholder, hint }) => (
+    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+      <label style={{ fontSize:11, color: required ? 'var(--text-2)' : 'var(--text-3)', fontWeight: required ? 600 : 400 }}>
+        {label}{required && <span style={{ color:'var(--red)' }}> *</span>}
+        {hint && <span style={{ color:'var(--text-3)', fontWeight:400 }}> ({hint})</span>}
+      </label>
+      <input
+        type="text" inputMode="decimal"
+        value={form[fkey]}
+        onChange={e => set(fkey, e.target.value)}
+        placeholder={placeholder || ''}
+        style={{ background:'var(--bg-card2)', border:'1px solid var(--border2)', borderRadius:'var(--r-md)',
+          padding:'8px 10px', color:'var(--text-1)', fontFamily:'var(--font)', fontSize:13, outline:'none' }}
+        onFocus={e => e.target.style.borderColor='var(--accent)'}
+        onBlur={e => e.target.style.borderColor='var(--border2)'}
+      />
+    </div>
+  );
+
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'var(--bg-card)', border:'1px solid var(--border2)', borderRadius:'var(--r-xl)', padding:24, width:'100%', maxWidth:560, maxHeight:'90vh', overflowY:'auto', boxShadow:'var(--shadow-lg)' }}>
+
+        {/* Header */}
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+          <div>
+            <div style={{ fontSize:16, fontWeight:700 }}>✏️ กรอกข้อมูลบิลด้วยมือ</div>
+            <div style={{ fontSize:12, color:'var(--text-3)', marginTop:2 }}>ใช้เมื่อ PDF อ่านไม่ได้หรือข้อมูลผิดพลาด</div>
+          </div>
+          <button onClick={onClose} style={{ background:'var(--bg-card2)', border:'1px solid var(--border)', borderRadius:'var(--r-md)', padding:'6px 12px', color:'var(--text-2)', cursor:'pointer', fontSize:13 }}>✕ ปิด</button>
+        </div>
+
+        {/* ฟาร์ม + ปี/เดือน */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:12, fontWeight:600, color:'var(--text-2)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.06em' }}>ข้อมูลหลัก</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <div style={{ display:'flex', flexDirection:'column', gap:4, gridColumn:'1/-1' }}>
+              <label style={{ fontSize:11, color:'var(--text-2)', fontWeight:600 }}>ฟาร์ม <span style={{ color:'var(--red)' }}>*</span></label>
+              <select value={form.ca_no} onChange={e => set('ca_no', e.target.value)}
+                style={{ background:'var(--bg-card2)', border:'1px solid var(--border2)', borderRadius:'var(--r-md)', padding:'8px 10px', color:'var(--text-1)', fontFamily:'var(--font)', fontSize:13 }}>
+                {meterList.map(m => <option key={m.ca_no} value={m.ca_no}>{m.farm_name}</option>)}
+              </select>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              <label style={{ fontSize:11, color:'var(--text-2)', fontWeight:600 }}>ปี (พ.ศ.) <span style={{ color:'var(--red)' }}>*</span></label>
+              <select value={form.year} onChange={e => set('year', e.target.value)}
+                style={{ background:'var(--bg-card2)', border:'1px solid var(--border2)', borderRadius:'var(--r-md)', padding:'8px 10px', color:'var(--text-1)', fontFamily:'var(--font)', fontSize:13 }}>
+                {[2563,2564,2565,2566,2567,2568,2569,2570].map(y => <option key={y} value={y}>ปี {y}</option>)}
+              </select>
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+              <label style={{ fontSize:11, color:'var(--text-2)', fontWeight:600 }}>เดือน <span style={{ color:'var(--red)' }}>*</span></label>
+              <select value={form.month} onChange={e => set('month', e.target.value)}
+                style={{ background:'var(--bg-card2)', border:'1px solid var(--border2)', borderRadius:'var(--r-md)', padding:'8px 10px', color:'var(--text-1)', fontFamily:'var(--font)', fontSize:13 }}>
+                {MONTHS_TH.slice(1).map((m,i) => <option key={i+1} value={i+1}>{m}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* ค่าไฟหลัก */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:12, fontWeight:600, color:'var(--text-2)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.06em' }}>ค่าไฟฟ้า <span style={{ color:'var(--red)', fontWeight:400 }}>* จำเป็น</span></div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <Inp label="ค่าไฟรวม (฿ รวม VAT)" fkey="total_thb" required placeholder="เช่น 335276.79" />
+            <Inp label="kWh รวม" fkey="kwh_total" required placeholder="เช่น 87648" />
+            <Inp label="Peak Demand (kW)" fkey="peak_kw" required placeholder="เช่น 192" />
+            <Inp label="FT Rate (฿/หน่วย)" fkey="ft_rate" required placeholder="เช่น 0.1623" />
+          </div>
+        </div>
+
+        {/* TOU breakdown */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:12, fontWeight:600, color:'var(--text-3)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.06em' }}>TOU Breakdown (ถ้ามี)</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10 }}>
+            <Inp label="On-Peak kWh" fkey="peak_kwh" placeholder="0" />
+            <Inp label="Off-Peak kWh" fkey="offpeak_kwh" placeholder="0" />
+            <Inp label="Holiday kWh" fkey="holiday_kwh" placeholder="0" />
+          </div>
+        </div>
+
+        {/* รายละเอียดเพิ่มเติม */}
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:12, fontWeight:600, color:'var(--text-3)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.06em' }}>รายละเอียดเพิ่มเติม (ถ้ามี)</div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+            <Inp label="ค่าไฟฐาน (฿)" fkey="base_thb" placeholder="0" />
+            <Inp label="ค่า FT (฿)" fkey="ft_thb" placeholder="0" />
+            <Inp label="VAT (฿)" fkey="vat_thb" placeholder="0" />
+            <Inp label="Power Factor Penalty (฿)" fkey="pf_penalty_thb" placeholder="0" />
+            <Inp label="Invoice No." fkey="invoice_no" hint="เว้นว่างให้ระบบสร้างให้" placeholder="เช่น 010210923616" />
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+          <button onClick={onClose} className="btn btn-secondary">ยกเลิก</button>
+          <button onClick={handleSave} disabled={saving} className="btn btn-primary">
+            {saving ? <span className="loading-spinner" /> : '💾 บันทึกข้อมูล'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Import Tab ────────────────────────────────────────────────
 function ImportTab({ onImported, meters, toast }) {
-  const [dragging, setDragging]   = useState(false);
-  const [previews, setPreviews]   = useState([]);
-  const [parsing,  setParsing]    = useState(false);
-  const [saving,   setSaving]     = useState(false);
+  const [dragging,      setDragging]      = useState(false);
+  const [previews,      setPreviews]      = useState([]);
+  const [parsing,       setParsing]       = useState(false);
+  const [saving,        setSaving]        = useState(false);
+  const [showManual,    setShowManual]    = useState(false);
+  const [editingIdx,    setEditingIdx]    = useState(null);
   const [recentImports, setRecentImports] = useState([]);
-  const dropRef = useRef(null);
+  const dropRef  = useRef(null);
   const inputRef = useRef(null);
 
   const meterMap = useMemo(() => {
     const m = {};
-    meters.forEach(x => { m[x.ca_no] = x; });
+    meters.forEach(x => { m[String(x.ca_no)] = x; });
     return m;
   }, [meters]);
 
@@ -1305,7 +1500,7 @@ function ImportTab({ onImported, meters, toast }) {
         results.push({ _filename: file.name, _valid: false, _error: e.message });
       }
     }
-    setPreviews(results);
+    setPreviews(prev => [...prev, ...results]);
     setParsing(false);
   };
 
@@ -1314,103 +1509,160 @@ function ImportTab({ onImported, meters, toast }) {
     handleFiles([...e.dataTransfer.files].filter(f => f.type === 'application/pdf'));
   };
 
-  const handleSave = async () => {
-    const valid = previews.filter(p => p._valid);
-    if (!valid.length) { toast('ไม่มีข้อมูลที่บันทึกได้', 'warning'); return; }
+  // แก้ไขค่าใน preview
+  const updatePreview = (idx, field, val) => {
+    setPreviews(prev => prev.map((p, i) => {
+      if (i !== idx) return p;
+      const updated = { ...p, [field]: isNaN(val) || val === '' ? val : parseFloat(val) || val };
+      updated._valid = !!(updated.invoice_no && updated.ca_no && updated.total_thb > 0);
+      return updated;
+    }));
+  };
+
+  const removePreview = (idx) => setPreviews(prev => prev.filter((_,i) => i !== idx));
+
+  const doSave = async (dataArray) => {
     setSaving(true);
     try {
-      // save history rows
-      const historyRows = valid.flatMap(p => (p.history||[]).map(h => ({ ...h, ca_no: p.ca_no, farm_name: p.farm_name })));
+      const historyRows = dataArray.flatMap(p => (p.history||[]).map(h => ({ ...h, ca_no: p.ca_no, farm_name: p.farm_name })));
       if (historyRows.length > 0) await apiPost('saveHistory', { data: historyRows });
-
-      // save bills
-      const res = await apiPost('saveBills', { data: valid });
+      const res = await apiPost('saveBills', { data: dataArray });
       toast(`บันทึก ${res.saved} บิล สำเร็จ${res.dups>0?` (ซ้ำ ${res.dups})`:''}`,'success');
-      setRecentImports(valid.map(p => ({ invoice: p.invoice_no, farm: p.farm_name, month: `${MONTHS_TH[Number(p.month)]} ${p.year}` })));
+      setRecentImports(dataArray.map(p => ({ invoice: p.invoice_no, farm: p.farm_name, month: `${MONTHS_TH[Number(p.month)]} ${p.year}` })));
       setPreviews([]);
       onImported();
     } catch(e) {
-      // offline fallback: save to localStorage
       const key = 'enervue_bills_local';
       const existing = JSON.parse(localStorage.getItem(key)||'[]');
-      const merged = [...existing, ...valid.filter(p => !existing.find(e => e.invoice_no === p.invoice_no))];
+      const merged = [...existing, ...dataArray.filter(p => !existing.find(e => e.invoice_no === p.invoice_no))];
       localStorage.setItem(key, JSON.stringify(merged));
-      toast(`บันทึกลง LocalStorage (backend ไม่พร้อม) — ${valid.length} บิล`, 'warning');
-      setPreviews([]);
-      onImported();
+      toast(`บันทึกลง LocalStorage — ${dataArray.length} บิล`, 'warning');
+      setPreviews([]); onImported();
     }
     setSaving(false);
   };
 
+  const handleSave = () => doSave(previews.filter(p => p._valid));
+
+  const handleManualSave = async (data) => {
+    await doSave([data]);
+    setShowManual(false);
+  };
+
+  // Edit inline field
+  const EditField = ({ idx, field, label, type='number' }) => {
+    const p = previews[idx];
+    return (
+      <div className="pf-item">
+        <div className="pf-label">{label}</div>
+        {editingIdx === idx ? (
+          <input
+            type="text" defaultValue={p[field]}
+            onChange={e => updatePreview(idx, field, e.target.value)}
+            style={{ background:'var(--bg-deep)', border:'1px solid var(--accent)', borderRadius:4, padding:'2px 6px', color:'var(--text-1)', fontFamily:'var(--mono)', fontSize:12, width:'100%', outline:'none' }}
+          />
+        ) : (
+          <div className="pf-val" style={{ fontSize:12 }}>
+            {typeof p[field] === 'number' ? (field.includes('thb') ? fmt.thb(p[field]) : fmt.num(p[field])) : p[field]}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
+      {showManual && (
+        <ManualEntryForm meters={meters} onSave={handleManualSave} onClose={() => setShowManual(false)} toast={toast} />
+      )}
+
       <div className="section-header">
-        <div><div className="section-title">Import PDF</div><div className="section-sub">อัปโหลดใบแจ้งค่าไฟ PEA — รองรับหลายไฟล์พร้อมกัน</div></div>
+        <div><div className="section-title">Import PDF</div><div className="section-sub">อัปโหลดใบแจ้งค่าไฟ PEA หรือกรอกข้อมูลด้วยมือ</div></div>
+        <button className="btn btn-secondary btn-sm" onClick={() => setShowManual(true)}>✏️ กรอกมือ</button>
       </div>
 
-      {/* Drop Zone */}
-      {!previews.length && (
-        <div
-          ref={dropRef}
-          className={`drop-zone ${dragging?'dragover':''}`}
-          onDragOver={e => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={handleDrop}
-          onClick={() => inputRef.current?.click()}
-        >
-          <input ref={inputRef} type="file" multiple accept=".pdf" style={{ display:'none' }} onChange={e => handleFiles([...e.target.files])} />
-          {parsing ? (
-            <>
-              <div className="loading-spinner" style={{ width:48, height:48, margin:'0 auto 16px' }} />
-              <div className="drop-title">กำลังอ่าน PDF...</div>
-            </>
-          ) : (
-            <>
-              <div className="drop-icon">📄</div>
-              <div className="drop-title">ลากไฟล์ PDF มาวางที่นี่</div>
-              <div className="drop-sub" style={{ marginBottom:12 }}>หรือคลิกเพื่อเลือกไฟล์ · รองรับหลายไฟล์พร้อมกัน</div>
-              <div className="drop-sub" style={{ fontSize:11, color:'var(--text-3)' }}>รองรับใบแจ้งค่าไฟฟ้า PEA Smart Invoice มาตรฐาน</div>
-            </>
-          )}
-        </div>
-      )}
+      {/* Drop Zone — แสดงเสมอ */}
+      <div
+        ref={dropRef}
+        className={`drop-zone ${dragging?'dragover':''}`}
+        style={{ marginBottom:16 }}
+        onDragOver={e => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => inputRef.current?.click()}
+      >
+        <input ref={inputRef} type="file" multiple accept=".pdf" style={{ display:'none' }} onChange={e => handleFiles([...e.target.files])} />
+        {parsing ? (
+          <>
+            <div className="loading-spinner" style={{ width:40, height:40, margin:'0 auto 12px' }} />
+            <div className="drop-title">กำลังอ่าน PDF...</div>
+          </>
+        ) : (
+          <>
+            <div className="drop-icon">📄</div>
+            <div className="drop-title">ลากไฟล์ PDF มาวางที่นี่</div>
+            <div className="drop-sub">หรือคลิกเพื่อเลือกไฟล์ · รองรับหลายไฟล์พร้อมกัน</div>
+          </>
+        )}
+      </div>
 
       {/* Preview */}
       {previews.length > 0 && (
         <div>
           <div className="flex justify-between items-center mb-3">
-            <div style={{ fontWeight:600 }}>ตรวจสอบข้อมูลก่อนบันทึก ({previews.length} ไฟล์)</div>
+            <div style={{ fontWeight:600 }}>
+              ตรวจสอบและแก้ไขก่อนบันทึก ({previews.length} รายการ)
+              <span style={{ fontSize:11, color:'var(--text-3)', marginLeft:8 }}>คลิก "แก้ไข" เพื่อแก้ค่าที่ผิด</span>
+            </div>
             <div className="flex gap-2">
-              <button className="btn btn-secondary btn-sm" onClick={() => setPreviews([])}>← กลับ</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setPreviews([])}>🗑 ล้างทั้งหมด</button>
               <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving || !previews.some(p=>p._valid)}>
-                {saving ? <span className="loading-spinner" /> : `💾 บันทึก ${previews.filter(p=>p._valid).length} บิล`}
+                {saving ? <span className="loading-spinner" /> : `💾 บันทึก ${previews.filter(p=>p._valid).length} รายการ`}
               </button>
             </div>
           </div>
 
           {previews.map((p, i) => (
-            <div key={i} className="preview-card">
-              <div className={`preview-status ${p._valid?'ok':p._error?.includes('ซ้ำ')?'dup':'err'}`} />
-              <div style={{ flex:1, minWidth:0 }}>
-                <div className="flex justify-between items-center mb-1">
-                  <span style={{ fontWeight:600, fontSize:13 }}>{p.farm_name || p._filename}</span>
-                  <span style={{ fontSize:11, color:'var(--text-3)' }}>{p._filename}</span>
-                </div>
-                {p._valid ? (
-                  <div className="preview-fields">
-                    <div className="pf-item"><div className="pf-label">Invoice</div><div className="pf-val" style={{ fontSize:11 }}>{p.invoice_no}</div></div>
-                    <div className="pf-item"><div className="pf-label">เดือน</div><div className="pf-val">{MONTHS_TH[p.month]} {p.year}</div></div>
-                    <div className="pf-item"><div className="pf-label">ยอดรวม</div><div className="pf-val">{fmt.thb(p.total_thb)}</div></div>
-                    <div className="pf-item"><div className="pf-label">kWh รวม</div><div className="pf-val">{fmt.num(Math.round(p.kwh_total||0))}</div></div>
-                    <div className="pf-item"><div className="pf-label">Peak kW</div><div className="pf-val">{p.peak_kw}</div></div>
-                    <div className="pf-item"><div className="pf-label">ค่า FT</div><div className="pf-val">{fmt.thb(p.ft_thb)}</div></div>
-                    {p.pf_penalty_thb > 0 && <div className="pf-item"><div className="pf-label">Power Factor</div><div className="pf-val" style={{ color:'var(--amber)' }}>{fmt.thb(p.pf_penalty_thb)}</div></div>}
-                    <div className="pf-item"><div className="pf-label">ตัวคูณ</div><div className="pf-val">×{p.multiplier}</div></div>
-                  </div>
-                ) : (
-                  <div style={{ fontSize:12, color:'var(--red)', marginTop:4 }}>⚠ {p._error}</div>
-                )}
+            <div key={i} className="preview-card" style={{ flexDirection:'column', gap:10 }}>
+              {/* Row 1: header */}
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div className={`preview-status ${p._valid?'ok':p._error?.includes('ซ้ำ')?'dup':'err'}`} />
+                <span style={{ fontWeight:600, fontSize:13, flex:1 }}>{p.farm_name || p._filename || 'กรอกด้วยมือ'}</span>
+                <span style={{ fontSize:11, color:'var(--text-3)' }}>
+                  {p._filename || `${MONTHS_TH[Number(p.month)]} ${p.year}`}
+                </span>
+                <button
+                  onClick={() => setEditingIdx(editingIdx===i ? null : i)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ padding:'4px 10px', fontSize:11 }}
+                >
+                  {editingIdx===i ? '✓ เสร็จ' : '✏️ แก้ไข'}
+                </button>
+                <button onClick={() => removePreview(i)} style={{ background:'none', border:'none', color:'var(--text-3)', cursor:'pointer', fontSize:16, padding:'0 4px' }}>✕</button>
               </div>
+
+              {/* Row 2: fields */}
+              {p._valid ? (
+                <div className="preview-fields">
+                  <EditField idx={i} field="invoice_no" label="Invoice No." />
+                  <div className="pf-item"><div className="pf-label">เดือน/ปี</div><div className="pf-val">{MONTHS_TH[Number(p.month)]} {p.year}</div></div>
+                  <EditField idx={i} field="total_thb"   label="ยอดรวม (฿)" />
+                  <EditField idx={i} field="kwh_total"   label="kWh รวม" />
+                  <EditField idx={i} field="peak_kw"     label="Peak kW" />
+                  <EditField idx={i} field="ft_thb"      label="ค่า FT (฿)" />
+                  <EditField idx={i} field="peak_kwh"    label="On-Peak kWh" />
+                  <EditField idx={i} field="offpeak_kwh" label="Off-Peak kWh" />
+                  {Number(p.pf_penalty_thb||0) > 0 && <EditField idx={i} field="pf_penalty_thb" label="PF Penalty (฿)" />}
+                  <EditField idx={i} field="ft_rate"     label="FT Rate" />
+                </div>
+              ) : (
+                <div style={{ fontSize:12, color:'var(--red)' }}>
+                  ⚠ {p._error}
+                  <button onClick={() => setShowManual(true)} className="btn btn-secondary btn-sm" style={{ marginLeft:12, fontSize:11 }}>
+                    กรอกมือแทน
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -1418,10 +1670,10 @@ function ImportTab({ onImported, meters, toast }) {
 
       {/* Recent Imports */}
       {recentImports.length > 0 && (
-        <div className="card mt-4" style={{ marginTop:20 }}>
+        <div className="card" style={{ marginTop:20 }}>
           <div className="chart-title" style={{ marginBottom:12 }}>✅ บันทึกล่าสุด</div>
           {recentImports.map((r, i) => (
-            <div key={i} className="flex gap-3 items-center" style={{ padding:'6px 0', borderBottom:'1px solid var(--border)', fontSize:13 }}>
+            <div key={i} style={{ display:'flex', gap:12, alignItems:'center', padding:'6px 0', borderBottom:'1px solid var(--border)', fontSize:13 }}>
               <span style={{ color:'var(--green)' }}>✓</span>
               <span style={{ color:'var(--text-1)', fontWeight:500 }}>{r.farm}</span>
               <span style={{ color:'var(--text-3)' }}>{r.month}</span>
@@ -1435,14 +1687,17 @@ function ImportTab({ onImported, meters, toast }) {
       <div className="card" style={{ marginTop:20 }}>
         <div style={{ fontWeight:600, fontSize:13, marginBottom:12, color:'var(--text-2)' }}>📋 วิธีใช้งาน</div>
         {[
-          ['1','ลากไฟล์ PDF ใบแจ้งค่าไฟ PEA มาวางในกล่องด้านบน หรือคลิกเพื่อเลือกไฟล์'],
-          ['2','ตรวจสอบข้อมูลที่อ่านได้ — ระบบจะแสดง Preview ก่อนบันทึก'],
-          ['3','กดปุ่ม "บันทึก" — ข้อมูลจะซิงค์ขึ้น Google Sheets ทันที ทุกคนเห็นพร้อมกัน'],
-          ['4','ระบบจะแจ้งเตือนถ้า Invoice นั้นมีอยู่แล้ว ไม่บันทึกซ้ำ'],
-        ].map(([n,t]) => (
-          <div key={n} className="flex gap-3" style={{ padding:'5px 0', fontSize:12, color:'var(--text-2)', alignItems:'flex-start' }}>
-            <span style={{ width:20, height:20, borderRadius:'50%', background:'var(--bg-card2)', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0, color:'var(--accent)' }}>{n}</span>
-            <span>{t}</span>
+          ['📄','PDF Import','ลากไฟล์ PDF ใบแจ้งค่าไฟ PEA มาวาง — ระบบอ่านข้อมูลอัตโนมัติ'],
+          ['✏️','กรอกมือ','กดปุ่ม "กรอกมือ" มุมขวาบน — ใช้เมื่อ PDF อ่านไม่ได้หรือไม่มีไฟล์'],
+          ['🔍','ตรวจสอบ','ดู Preview แล้วกด "แก้ไข" เพื่อแก้ค่าที่ผิดพลาดก่อนบันทึก'],
+          ['💾','บันทึก','กดบันทึก — ข้อมูลขึ้น Google Sheets ทันที ทุกคนเห็นพร้อมกัน'],
+        ].map(([icon,title,desc]) => (
+          <div key={title} style={{ display:'flex', gap:10, padding:'6px 0', borderBottom:'1px solid var(--border)', fontSize:12, color:'var(--text-2)', alignItems:'flex-start' }}>
+            <span style={{ fontSize:16, flexShrink:0 }}>{icon}</span>
+            <div>
+              <span style={{ fontWeight:600, color:'var(--text-1)' }}>{title} — </span>
+              <span>{desc}</span>
+            </div>
           </div>
         ))}
       </div>
@@ -1554,7 +1809,7 @@ function ReportTab({ bills, meters, settings, toast, lang }) {
       const bThb = sumThb(bRows), tThb = sumThb(tRows);
       const bKwh = sumKwh(bRows), tKwh = sumKwh(tRows);
       return {
-        ca: f.ca, name: f.name, color: FARM_COLORS[i],
+        ca: f.ca, name: f.name, color: getFarmColor(f.ca),
         baseThb: bThb, targetThb: tThb, diffThb: tThb-bThb,
         baseKwh: bKwh, targetKwh: tKwh, diffKwh: tKwh-bKwh,
         pctThb: bThb>0?(tThb-bThb)/bThb*100:0,
@@ -1872,10 +2127,10 @@ function ReportTab({ bills, meters, settings, toast, lang }) {
             if (!thb) return null;
             return (
               <div key={f.ca} style={{display:'flex',alignItems:'center',gap:10,marginBottom:8,fontSize:12}}>
-                <span style={{width:18,height:18,borderRadius:'50%',background:FARM_COLORS[i],display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#000',flexShrink:0}}>{i+1}</span>
+                <span style={{width:18,height:18,borderRadius:'50%',background:getFarmColor(f.ca),display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#000',flexShrink:0}}>{i+1}</span>
                 <span style={{minWidth:230,color:'var(--text-1)',fontWeight:500}}>{f.name}</span>
                 <div className="progress-bar" style={{flex:1}}>
-                  <div className="progress-fill" style={{width:`${pct}%`,background:FARM_COLORS[i]}}/>
+                  <div className="progress-fill" style={{width:`${pct}%`,background:getFarmColor(f.ca)}}/>
                 </div>
                 <span style={{minWidth:90,textAlign:'right',fontFamily:'var(--mono)',fontSize:11}}>{fmt.thb(thb)}</span>
                 <span style={{minWidth:40,textAlign:'right',color:'var(--text-3)',fontSize:11}}>{pct.toFixed(1)}%</span>
