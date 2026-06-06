@@ -1034,6 +1034,132 @@ function OverviewTab({ bills, meters, settings, lang }) {
   );
 }
 
+// ── MultiLineChart — Pure SVG, guaranteed colors ──────────────
+function MultiLineChart({ data, lines, formatter, height = 260 }) {
+  const [tooltip, setTooltip] = useState(null);
+  const svgRef = useRef(null);
+  const W = 800, H = height - 40;
+  const padL = 60, padR = 12, padT = 10, padB = 30;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  const allVals = data.flatMap(d => lines.map(l => Number(d[l.key]||0))).filter(v => v > 0);
+  const minV = 0;
+  const maxV = allVals.length ? Math.max(...allVals) * 1.05 : 1;
+
+  const xScale = i => padL + (i / Math.max(data.length - 1, 1)) * innerW;
+  const yScale = v => padT + innerH - ((v - minV) / (maxV - minV)) * innerH;
+
+  const tickCount = 5;
+  const yTicks = Array.from({length: tickCount}, (_, i) => minV + (maxV - minV) * i / (tickCount-1));
+
+  // X axis ticks — show every N labels to avoid overlap
+  const xStep = Math.ceil(data.length / 12);
+  const xTicks = data.map((d, i) => i).filter(i => i % xStep === 0 || i === data.length - 1);
+
+  const handleMouseMove = (e) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const mx = (e.clientX - rect.left) * scaleX - padL;
+    const idx = Math.round(mx / innerW * (data.length - 1));
+    const clamped = Math.max(0, Math.min(data.length - 1, idx));
+    if (data[clamped]) setTooltip({ idx: clamped, x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  return (
+    <div style={{ position:'relative', width:'100%' }}>
+      <svg
+        ref={svgRef}
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height={height}
+        style={{ overflow:'visible', display:'block' }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setTooltip(null)}
+      >
+        {/* Grid lines */}
+        {yTicks.map((v, i) => (
+          <g key={i}>
+            <line x1={padL} y1={yScale(v)} x2={W - padR} y2={yScale(v)} stroke="rgba(255,255,255,0.04)" strokeWidth="1" />
+            <text x={padL - 6} y={yScale(v) + 4} textAnchor="end" fontSize="9" fill="var(--text-3)">
+              {fmt.short(v)}
+            </text>
+          </g>
+        ))}
+
+        {/* X axis ticks */}
+        {xTicks.map(i => (
+          <text key={i} x={xScale(i)} y={H - 2} textAnchor="middle" fontSize="9" fill="var(--text-3)">
+            {data[i]?.label || ''}
+          </text>
+        ))}
+
+        {/* Lines */}
+        {lines.map(line => {
+          const pts = data.map((d, i) => {
+            const v = Number(d[line.key] || 0);
+            return v > 0 ? `${xScale(i)},${yScale(v)}` : null;
+          });
+          // build path with gaps for null values
+          let path = '';
+          pts.forEach((pt, i) => {
+            if (pt) path += (i === 0 || !pts[i-1]) ? `M${pt}` : `L${pt}`;
+          });
+          return (
+            <g key={line.key}>
+              <path d={path} fill="none" stroke={line.color} strokeWidth="2" strokeLinejoin="round" />
+              {pts.map((pt, i) => pt ? (
+                <circle key={i} cx={xScale(i)} cy={yScale(Number(data[i][line.key]))} r="3"
+                  fill={line.color} stroke="none" />
+              ) : null)}
+            </g>
+          );
+        })}
+
+        {/* Tooltip crosshair */}
+        {tooltip && (
+          <line x1={xScale(tooltip.idx)} y1={padT} x2={xScale(tooltip.idx)} y2={H - padB}
+            stroke="rgba(255,255,255,0.2)" strokeWidth="1" strokeDasharray="4,3" />
+        )}
+      </svg>
+
+      {/* Tooltip box */}
+      {tooltip && data[tooltip.idx] && (
+        <div style={{
+          position:'absolute',
+          left: tooltip.x + 12,
+          top: Math.max(0, tooltip.y - 20),
+          background:'var(--bg-card2)',
+          border:'1px solid var(--border2)',
+          borderRadius:'var(--r-md)',
+          padding:'10px 14px',
+          fontSize:12,
+          pointerEvents:'none',
+          zIndex:100,
+          minWidth:180,
+          boxShadow:'var(--shadow)',
+        }}>
+          <div style={{ color:'var(--text-3)', marginBottom:6, fontWeight:600 }}>{data[tooltip.idx].label}</div>
+          {lines.map(line => {
+            const v = Number(data[tooltip.idx][line.key] || 0);
+            if (!v) return null;
+            return (
+              <div key={line.key} style={{ display:'flex', gap:8, alignItems:'center', marginBottom:3 }}>
+                <div style={{ width:8, height:8, borderRadius:'50%', background:line.color, flexShrink:0 }} />
+                <span style={{ color:'var(--text-2)', fontSize:11 }}>{line.label}:</span>
+                <span style={{ color:'var(--text-1)', fontFamily:'var(--mono)', fontWeight:600, marginLeft:'auto' }}>
+                  {formatter ? formatter(v) : v.toLocaleString()}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Analytics Tab ─────────────────────────────────────────────
 function AnalyticsTab({ bills, meters, settings, lang }) {
   const M = lang === 'th' ? MONTHS_TH : MONTHS_EN;
@@ -1185,57 +1311,21 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
         <div className="chart-title">แนวโน้มรายเดือน — {chartMetric==='thb'?'ค่าไฟ (บาท)':chartMetric==='kwh'?'พลังงาน (kWh)':'Peak Demand (kW)'}</div>
 
         {/* Custom Legend */}
-        <div style={{ display:'flex', flexWrap:'wrap', gap:12, marginBottom:10, paddingLeft:10 }}>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:14, marginBottom:10, paddingLeft:10 }}>
           {farmKeys.map(fk => (
-            <div key={fk.ca} style={{ display:'flex', alignItems:'center', gap:5, fontSize:11 }}>
-              <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke={fk.color} strokeWidth="2.5" /></svg>
-              <span style={{ color:'var(--text-2)' }}>{fk.label}</span>
+            <div key={fk.ca} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11, color:'var(--text-2)' }}>
+              <div style={{ width:24, height:3, background:fk.color, borderRadius:2, flexShrink:0 }} />
+              {fk.label}
             </div>
           ))}
         </div>
 
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={monthlyData} margin={{ top:5, right:10, left:10, bottom:5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-            <XAxis dataKey="label" tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v => fmt.short(v)} />
-            <Tooltip
-              content={({ active, payload, label }) => {
-                if (!active || !payload?.length) return null;
-                return (
-                  <div style={{ background:'var(--bg-card2)', border:'1px solid var(--border2)', borderRadius:'var(--r-md)', padding:'10px 14px', fontSize:12 }}>
-                    <div style={{ color:'var(--text-3)', marginBottom:6, fontWeight:600 }}>{label}</div>
-                    {payload.map((p, i) => {
-                      const fk = farmKeys.find(f => f.ca === p.dataKey);
-                      return (
-                        <div key={i} style={{ display:'flex', gap:8, alignItems:'center', marginBottom:3 }}>
-                          <span style={{ width:8, height:8, borderRadius:'50%', background: fk?.color || p.color, flexShrink:0, display:'inline-block' }} />
-                          <span style={{ color:'var(--text-2)' }}>{fk?.label || p.name}:</span>
-                          <span style={{ color:'var(--text-1)', fontFamily:'var(--mono)', fontWeight:600 }}>
-                            {chartMetric==='thb' ? fmt.thb(p.value) : fmt.num(p.value)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              }}
-            />
-            {farmKeys.map((fk) => (
-              <Line
-                key={fk.ca}
-                type="monotone"
-                dataKey={fk.ca}
-                stroke={fk.color}
-                strokeWidth={2}
-                dot={{ fill: fk.color, stroke: fk.color, r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5, fill: fk.color, stroke: fk.color }}
-                connectNulls={true}
-                isAnimationActive={false}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+        <MultiLineChart
+          data={monthlyData}
+          lines={farmKeys.map(fk => ({ key: fk.ca, color: fk.color, label: fk.label }))}
+          formatter={v => chartMetric==='thb' ? fmt.thb(v) : fmt.num(v)}
+          height={260}
+        />
       </div>
 
       {/* YoY + TOU */}
