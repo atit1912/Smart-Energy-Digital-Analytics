@@ -1183,24 +1183,56 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
       {/* Monthly Trend */}
       <div className="card mb-5">
         <div className="chart-title">แนวโน้มรายเดือน — {chartMetric==='thb'?'ค่าไฟ (บาท)':chartMetric==='kwh'?'พลังงาน (kWh)':'Peak Demand (kW)'}</div>
+
+        {/* Custom Legend */}
+        <div style={{ display:'flex', flexWrap:'wrap', gap:12, marginBottom:10, paddingLeft:10 }}>
+          {farmKeys.map(fk => (
+            <div key={fk.ca} style={{ display:'flex', alignItems:'center', gap:5, fontSize:11 }}>
+              <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke={fk.color} strokeWidth="2.5" /></svg>
+              <span style={{ color:'var(--text-2)' }}>{fk.label}</span>
+            </div>
+          ))}
+        </div>
+
         <ResponsiveContainer width="100%" height={260}>
           <LineChart data={monthlyData} margin={{ top:5, right:10, left:10, bottom:5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
             <XAxis dataKey="label" tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v => fmt.short(v)} />
-            <Tooltip content={<CustomTooltip formatter={(v) => chartMetric==='thb'?fmt.thb(v):fmt.num(v)} />} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:11, color:'var(--text-2)' }}
-              formatter={(value) => {
-                const fk = farmKeys.find(f => f.ca === value);
-                return fk ? fk.label : value;
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div style={{ background:'var(--bg-card2)', border:'1px solid var(--border2)', borderRadius:'var(--r-md)', padding:'10px 14px', fontSize:12 }}>
+                    <div style={{ color:'var(--text-3)', marginBottom:6, fontWeight:600 }}>{label}</div>
+                    {payload.map((p, i) => {
+                      const fk = farmKeys.find(f => f.ca === p.dataKey);
+                      return (
+                        <div key={i} style={{ display:'flex', gap:8, alignItems:'center', marginBottom:3 }}>
+                          <span style={{ width:8, height:8, borderRadius:'50%', background: fk?.color || p.color, flexShrink:0, display:'inline-block' }} />
+                          <span style={{ color:'var(--text-2)' }}>{fk?.label || p.name}:</span>
+                          <span style={{ color:'var(--text-1)', fontFamily:'var(--mono)', fontWeight:600 }}>
+                            {chartMetric==='thb' ? fmt.thb(p.value) : fmt.num(p.value)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
               }}
             />
             {farmKeys.map((fk) => (
-              <Line key={fk.ca} type="monotone" dataKey={fk.ca} name={fk.label}
-                stroke={fk.color} strokeWidth={2}
-                dot={{ fill: fk.color, r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5 }}
-                connectNulls={true} />
+              <Line
+                key={fk.ca}
+                type="monotone"
+                dataKey={fk.ca}
+                stroke={fk.color}
+                strokeWidth={2}
+                dot={{ fill: fk.color, stroke: fk.color, r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: fk.color, stroke: fk.color }}
+                connectNulls={true}
+                isAnimationActive={false}
+              />
             ))}
           </LineChart>
         </ResponsiveContainer>
