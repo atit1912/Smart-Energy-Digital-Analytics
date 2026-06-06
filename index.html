@@ -1037,14 +1037,24 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
     return d;
   }, [bills, filterYear, filterFarm]);
 
-  // Monthly trend per farm
+  // Monthly trend per farm — ใช้ ca_no เป็น key เพื่อความ consistent
+  const farmKeys = useMemo(() => {
+    const cas = [...new Set(filtered.map(b => b.ca_no))];
+    return cas.map(ca => ({
+      ca,
+      label: (meterMap[ca]?.farm_name || ca)
+        .replace('ศูนย์วิจัย','ศ.ว.')
+        .replace('ศูนย์ปรับปรุงพันธุ์สัตว์น้ำ','ศปป.')
+    }));
+  }, [filtered, meterMap]);
+
   const monthlyData = useMemo(() => {
     const grouped = {};
     filtered.forEach(b => {
       const key = `${b.year}-${String(b.month).padStart(2,'0')}`;
       if (!grouped[key]) grouped[key] = { label: M[Number(b.month)]+' '+String(b.year).slice(-2) };
-      const fname = (meterMap[b.ca_no]?.farm_name || b.farm_name || b.ca_no).replace('ศูนย์','ศ.').replace('วิจัย','ว.').replace('ปรับปรุงพันธุ์สัตว์น้ำ','ปปน.');
-      grouped[key][fname] = (grouped[key][fname]||0) + Number(b[chartMetric==='thb'?'total_thb':chartMetric==='kwh'?'kwh_total':'peak_kw']||0);
+      const val = Number(b[chartMetric==='thb'?'total_thb':chartMetric==='kwh'?'kwh_total':'peak_kw']||0);
+      grouped[key][b.ca_no] = (grouped[key][b.ca_no]||0) + val;
     });
     return Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([,v]) => v);
   }, [filtered, chartMetric, meterMap, lang]);
@@ -1064,17 +1074,31 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
     });
   }, [bills, meterMap]);
 
-  // TOU Breakdown
+  // TOU Breakdown — fallback to kwh_total ถ้าไม่มีข้อมูล TOU แยก
   const touData = useMemo(() => {
     const peak = filtered.reduce((s,b) => s+Number(b.peak_kwh||0),0);
     const off  = filtered.reduce((s,b) => s+Number(b.offpeak_kwh||0),0);
     const hol  = filtered.reduce((s,b) => s+Number(b.holiday_kwh||0),0);
-    return [
-      { name:'On-Peak',    value: peak, color:'#f87171' },
-      { name:'Off-Peak',   value: off,  color:'#4ade80' },
-      { name:'Holiday',    value: hol,  color:'#a78bfa' },
-    ].filter(d => d.value > 0);
-  }, [filtered]);
+    const total = peak + off + hol;
+    // ถ้ามีข้อมูล TOU แยก
+    if (total > 0) {
+      return [
+        { name:'On-Peak',  value: peak, color:'#f87171' },
+        { name:'Off-Peak', value: off,  color:'#4ade80' },
+        { name:'Holiday',  value: hol,  color:'#a78bfa' },
+      ].filter(d => d.value > 0);
+    }
+    // fallback: แสดง kwh_total รายฟาร์ม
+    const byFarm = {};
+    filtered.forEach(b => {
+      const fname = (meterMap[b.ca_no]?.farm_name||b.farm_name||b.ca_no)
+        .replace('ศูนย์วิจัย','ศ.ว.').replace('ศูนย์ปรับปรุงพันธุ์สัตว์น้ำ','ศปป.');
+      byFarm[fname] = (byFarm[fname]||0) + Number(b.kwh_total||0);
+    });
+    return Object.entries(byFarm).map(([name,value],i) => ({
+      name, value, color: FARM_COLORS[i%FARM_COLORS.length]
+    })).filter(d => d.value > 0);
+  }, [filtered, meterMap]);
 
   // Farm ranking
   const rankData = useMemo(() => {
@@ -1135,9 +1159,16 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
             <XAxis dataKey="label" tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v => fmt.short(v)} />
             <Tooltip content={<CustomTooltip formatter={(v) => chartMetric==='thb'?fmt.thb(v):fmt.num(v)} />} />
-            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:11, color:'var(--text-2)' }} />
-            {Object.keys(monthlyData[0]||{}).filter(k => k!=='label').map((k, i) => (
-              <Line key={k} type="monotone" dataKey={k} stroke={FARM_COLORS[i%FARM_COLORS.length]} strokeWidth={2} dot={false} activeDot={{ r:4 }} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:11, color:'var(--text-2)' }}
+              formatter={(value) => {
+                const fk = farmKeys.find(f => f.ca === value);
+                return fk ? fk.label : value;
+              }}
+            />
+            {farmKeys.map((fk, i) => (
+              <Line key={fk.ca} type="monotone" dataKey={fk.ca} name={fk.label}
+                stroke={FARM_COLORS[i%FARM_COLORS.length]} strokeWidth={2}
+                dot={false} activeDot={{ r:4 }} connectNulls={true} />
             ))}
           </LineChart>
         </ResponsiveContainer>
@@ -1162,7 +1193,12 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
 
         {/* TOU Pie */}
         <div className="card">
-          <div className="chart-title">สัดส่วน TOU</div>
+          <div className="chart-title">
+            สัดส่วน TOU
+            {touData.length > 0 && (filtered.reduce((s,b)=>s+Number(b.peak_kwh||0),0) === 0) && (
+              <span style={{ fontSize:10, color:'var(--text-3)', marginLeft:8 }}>(kWh รายฟาร์ม — ไม่มีข้อมูล On/Off-Peak แยก)</span>
+            )}
+          </div>
           {touData.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
@@ -1173,7 +1209,7 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
                 <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:11 }} />
               </PieChart>
             </ResponsiveContainer>
-          ) : <div style={{ textAlign:'center', padding:'40px', color:'var(--text-3)' }}>ไม่มีข้อมูล TOU</div>}
+          ) : <div style={{ textAlign:'center', padding:'40px', color:'var(--text-3)' }}>ไม่มีข้อมูล</div>}
         </div>
       </div>
 
