@@ -1040,11 +1040,12 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
   // Monthly trend per farm — ใช้ ca_no เป็น key เพื่อความ consistent
   const farmKeys = useMemo(() => {
     const cas = [...new Set(filtered.map(b => b.ca_no))];
-    return cas.map(ca => ({
+    return cas.map((ca, i) => ({
       ca,
-      label: (meterMap[ca]?.farm_name || ca)
-        .replace('ศูนย์วิจัย','ศ.ว.')
-        .replace('ศูนย์ปรับปรุงพันธุ์สัตว์น้ำ','ศปป.')
+      label: meterMap[ca]?.farm_name || ca,
+      color: FARM_COLORS[
+        ['020002585465','020018801218','020004256878','020003675011','020002616437'].indexOf(ca) % FARM_COLORS.length
+      ] || FARM_COLORS[i % FARM_COLORS.length]
     }));
   }, [filtered, meterMap]);
 
@@ -1091,12 +1092,12 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
     // fallback: แสดง kwh_total รายฟาร์ม
     const byFarm = {};
     filtered.forEach(b => {
-      const fname = (meterMap[b.ca_no]?.farm_name||b.farm_name||b.ca_no)
-        .replace('ศูนย์วิจัย','ศ.ว.').replace('ศูนย์ปรับปรุงพันธุ์สัตว์น้ำ','ศปป.');
-      byFarm[fname] = (byFarm[fname]||0) + Number(b.kwh_total||0);
+      const fname = meterMap[b.ca_no]?.farm_name || b.farm_name || b.ca_no;
+      byFarm[b.ca_no] = { name: fname, value: (byFarm[b.ca_no]?.value||0) + Number(b.kwh_total||0) };
     });
-    return Object.entries(byFarm).map(([name,value],i) => ({
-      name, value, color: FARM_COLORS[i%FARM_COLORS.length]
+    return Object.values(byFarm).map((item, i) => ({
+      ...item,
+      color: FARM_COLORS[i % FARM_COLORS.length]
     })).filter(d => d.value > 0);
   }, [filtered, meterMap]);
 
@@ -1165,9 +1166,9 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
                 return fk ? fk.label : value;
               }}
             />
-            {farmKeys.map((fk, i) => (
+            {farmKeys.map((fk) => (
               <Line key={fk.ca} type="monotone" dataKey={fk.ca} name={fk.label}
-                stroke={FARM_COLORS[i%FARM_COLORS.length]} strokeWidth={2}
+                stroke={fk.color} strokeWidth={2}
                 dot={false} activeDot={{ r:4 }} connectNulls={true} />
             ))}
           </LineChart>
