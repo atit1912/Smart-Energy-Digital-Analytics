@@ -1,0 +1,1720 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>EnerVue — Intelligent Energy Analytics</title>
+<meta name="description" content="EnerVue — Intelligent Energy Analytics for CP Foods Aquaculture">
+<meta name="theme-color" content="#0a0f1e">
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.10.3/Recharts.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+/* ── RESET & BASE ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg-deep:    #0a0f1e;
+  --bg-card:    #111827;
+  --bg-card2:   #1a2236;
+  --bg-hover:   #1e2d45;
+  --border:     rgba(255,255,255,0.08);
+  --border2:    rgba(255,255,255,0.12);
+  --text-1:     #f1f5f9;
+  --text-2:     #94a3b8;
+  --text-3:     #64748b;
+  --accent:     #38bdf8;
+  --accent2:    #0ea5e9;
+  --green:      #4ade80;
+  --green2:     #22c55e;
+  --amber:      #fbbf24;
+  --amber2:     #f59e0b;
+  --red:        #f87171;
+  --red2:       #ef4444;
+  --purple:     #a78bfa;
+  --teal:       #2dd4bf;
+  --font:       'Space Grotesk', sans-serif;
+  --mono:       'JetBrains Mono', monospace;
+  --r-sm:       6px;
+  --r-md:       10px;
+  --r-lg:       14px;
+  --r-xl:       20px;
+  --shadow:     0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg:  0 8px 48px rgba(0,0,0,0.6);
+  /* farm colors */
+  --c1: #38bdf8; --c2: #4ade80; --c3: #fbbf24; --c4: #f472b6; --c5: #a78bfa;
+}
+html { height: 100%; }
+body {
+  min-height: 100%;
+  background: var(--bg-deep);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+#root { min-height: 100vh; }
+/* scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+/* ── TYPOGRAPHY ── */
+h1 { font-size: clamp(1.5rem,4vw,2rem); font-weight: 700; letter-spacing: -0.03em; }
+h2 { font-size: 1.25rem; font-weight: 600; letter-spacing: -0.02em; }
+h3 { font-size: 1rem; font-weight: 600; }
+code { font-family: var(--mono); font-size: 0.85em; }
+
+/* ── LAYOUT ── */
+.app-shell {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+.sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 0;
+  transition: width 0.2s ease, min-width 0.2s ease;
+  z-index: 100;
+}
+.sidebar.collapsed { width: 60px; min-width: 60px; }
+.main-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--bg-deep);
+}
+
+/* ── SIDEBAR ELEMENTS ── */
+.sidebar-logo {
+  padding: 0 16px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(56,189,248,0.3);
+}
+.logo-text { font-size: 18px; font-weight: 700; letter-spacing: -0.04em; }
+.logo-sub { font-size: 10px; color: var(--text-3); letter-spacing: 0.05em; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 16px;
+  color: var(--text-2);
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  border-left: 3px solid transparent;
+  font-size: 13px; font-weight: 500;
+}
+.nav-item:hover { background: var(--bg-hover); color: var(--text-1); }
+.nav-item.active {
+  background: rgba(56,189,248,0.1);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.nav-icon { font-size: 16px; flex-shrink: 0; width: 20px; text-align: center; }
+.sidebar-bottom {
+  margin-top: auto;
+  padding: 0 16px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.sidebar-toggle {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 8px;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 14px;
+  text-align: center;
+  transition: all 0.15s;
+}
+.sidebar-toggle:hover { color: var(--text-1); background: var(--bg-hover); }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+}
+.card-sm { padding: 14px 16px; }
+.card-hover { transition: border-color 0.15s, box-shadow 0.15s; }
+.card-hover:hover { border-color: var(--border2); box-shadow: var(--shadow); }
+
+/* ── KPI CARDS ── */
+.kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.kpi-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.kpi-card.accent::before  { background: linear-gradient(90deg, var(--accent), var(--purple)); }
+.kpi-card.green::before   { background: linear-gradient(90deg, var(--green), var(--teal)); }
+.kpi-card.amber::before   { background: linear-gradient(90deg, var(--amber), var(--red)); }
+.kpi-card.purple::before  { background: linear-gradient(90deg, var(--purple), var(--accent)); }
+.kpi-card:hover { border-color: var(--border2); }
+.kpi-label { font-size: 11px; font-weight: 500; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.kpi-value { font-size: clamp(1.5rem,3vw,2rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1; margin-bottom: 6px; }
+.kpi-sub { font-size: 12px; color: var(--text-2); }
+.kpi-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 600; padding: 2px 7px;
+  border-radius: 99px; margin-top: 6px;
+}
+.kpi-badge.up { background: rgba(74,222,128,0.15); color: var(--green); }
+.kpi-badge.down { background: rgba(248,113,113,0.15); color: var(--red); }
+.kpi-badge.neutral { background: rgba(148,163,184,0.15); color: var(--text-2); }
+
+/* ── FARM CARDS ── */
+.farm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.farm-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  overflow: hidden;
+}
+.farm-card::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 3px;
+}
+.farm-card:hover { border-color: var(--border2); transform: translateY(-1px); box-shadow: var(--shadow); }
+.farm-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.farm-addr { font-size: 11px; color: var(--text-3); margin-bottom: 10px; }
+.farm-stats { display: flex; gap: 16px; }
+.farm-stat-val { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; line-height: 1; }
+.farm-stat-lbl { font-size: 10px; color: var(--text-3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── CHARTS ── */
+.chart-container { margin-bottom: 20px; }
+.chart-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text-1); }
+.chart-sub { font-size: 12px; color: var(--text-3); margin-top: -12px; margin-bottom: 16px; }
+
+/* ── FILTER BAR ── */
+.filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; align-items: center; }
+.filter-select {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 7px 12px;
+  color: var(--text-1); font-family: var(--font); font-size: 12px;
+  cursor: pointer; min-width: 120px;
+  outline: none; transition: border-color 0.15s;
+}
+.filter-select:focus { border-color: var(--accent); }
+.filter-btn {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-md); padding: 7px 14px;
+  color: var(--text-2); font-family: var(--font); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.filter-btn:hover { border-color: var(--border2); color: var(--text-1); }
+.filter-btn.active { background: rgba(56,189,248,0.15); border-color: var(--accent); color: var(--accent); }
+
+/* ── TABLE ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th {
+  padding: 10px 12px; text-align: left;
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-3); border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.data-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-2); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background 0.1s; }
+.data-table tbody tr:hover { background: var(--bg-hover); }
+.data-table td.num { font-family: var(--mono); font-size: 12px; text-align: right; color: var(--text-1); }
+
+/* ── IMPORT ZONE ── */
+.drop-zone {
+  border: 2px dashed var(--border2);
+  border-radius: var(--r-xl);
+  padding: 48px 24px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  background: var(--bg-card);
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: rgba(56,189,248,0.05);
+}
+.drop-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+.drop-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.drop-sub { font-size: 13px; color: var(--text-3); }
+
+/* ── IMPORT PREVIEW ── */
+.preview-card {
+  background: var(--bg-card2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  margin-bottom: 10px;
+  display: flex; align-items: flex-start; gap: 14px;
+}
+.preview-status {
+  width: 8px; height: 8px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 5px;
+}
+.preview-status.ok { background: var(--green); }
+.preview-status.dup { background: var(--amber); }
+.preview-status.err { background: var(--red); }
+.preview-fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; margin-top: 10px; }
+.pf-item { background: var(--bg-card); border-radius: var(--r-sm); padding: 6px 10px; }
+.pf-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; }
+.pf-val { font-size: 13px; font-weight: 600; color: var(--text-1); font-family: var(--mono); }
+
+/* ── BUTTONS ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: var(--r-md);
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s;
+  border: none; outline: none; white-space: nowrap;
+}
+.btn-primary { background: var(--accent2); color: #fff; }
+.btn-primary:hover { background: var(--accent); }
+.btn-secondary { background: var(--bg-card2); border: 1px solid var(--border2); color: var(--text-1); }
+.btn-secondary:hover { background: var(--bg-hover); }
+.btn-danger { background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); color: var(--red); }
+.btn-danger:hover { background: rgba(239,68,68,0.25); }
+.btn-green { background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.3); color: var(--green); }
+.btn-green:hover { background: rgba(74,222,128,0.25); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-lg { padding: 12px 24px; font-size: 15px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── BADGE ── */
+.badge {
+  display: inline-block; font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px; letter-spacing: 0.04em;
+}
+.badge-blue   { background: rgba(56,189,248,0.15); color: var(--accent); }
+.badge-green  { background: rgba(74,222,128,0.15); color: var(--green); }
+.badge-amber  { background: rgba(251,191,36,0.15); color: var(--amber); }
+.badge-red    { background: rgba(248,113,113,0.15); color: var(--red); }
+.badge-purple { background: rgba(167,139,250,0.15); color: var(--purple); }
+.badge-gray   { background: rgba(148,163,184,0.1); color: var(--text-2); }
+
+/* ── PROGRESS BAR ── */
+.progress-bar { background: var(--bg-card2); border-radius: 99px; height: 6px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+
+/* ── TOU GRADE ── */
+.grade-circle {
+  width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 700;
+}
+.grade-A { background: rgba(74,222,128,0.2); color: var(--green); border: 2px solid var(--green); }
+.grade-B { background: rgba(56,189,248,0.2); color: var(--accent); border: 2px solid var(--accent); }
+.grade-C { background: rgba(251,191,36,0.2); color: var(--amber); border: 2px solid var(--amber); }
+.grade-D { background: rgba(248,113,113,0.2); color: var(--red); border: 2px solid var(--red); }
+
+/* ── LOGIN ── */
+.login-screen {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 20% 50%, rgba(56,189,248,0.06) 0%, transparent 60%),
+              radial-gradient(ellipse at 80% 20%, rgba(167,139,250,0.06) 0%, transparent 60%),
+              var(--bg-deep);
+}
+.login-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 40px;
+  width: 100%; max-width: 380px;
+  box-shadow: var(--shadow-lg);
+}
+.login-logo { text-align: center; margin-bottom: 32px; }
+.login-logo-icon {
+  width: 64px; height: 64px; margin: 0 auto 16px;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px;
+  box-shadow: 0 0 40px rgba(56,189,248,0.3);
+}
+.login-title { font-size: 28px; font-weight: 700; letter-spacing: -0.04em; }
+.login-sub { font-size: 13px; color: var(--text-3); margin-top: 4px; }
+.login-input {
+  width: 100%; background: var(--bg-card2); border: 1px solid var(--border2);
+  border-radius: var(--r-md); padding: 12px 16px;
+  color: var(--text-1); font-family: var(--font); font-size: 14px;
+  outline: none; transition: border-color 0.15s;
+}
+.login-input:focus { border-color: var(--accent); }
+.login-input.error { border-color: var(--red); }
+.login-btn {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--accent2), var(--purple));
+  border: none; border-radius: var(--r-md);
+  color: #fff; font-family: var(--font); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.15s;
+  margin-top: 12px;
+}
+.login-btn:hover { opacity: 0.9; }
+
+/* ── SECTION HEADER ── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.section-title { font-size: 16px; font-weight: 600; color: var(--text-1); }
+.section-sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+/* ── INSIGHTS ── */
+.insight-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.insight-item:last-child { border-bottom: none; }
+.insight-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.insight-text { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+.insight-strong { color: var(--text-1); font-weight: 500; }
+
+/* ── LOAD SHIFT SLIDER ── */
+.slider-track {
+  -webkit-appearance: none; width: 100%; height: 4px;
+  border-radius: 99px; background: var(--bg-card2);
+  outline: none; cursor: pointer;
+}
+.slider-track::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px;
+  border-radius: 50%; background: var(--accent);
+  cursor: pointer; box-shadow: 0 0 10px rgba(56,189,248,0.5);
+  border: 2px solid var(--bg-deep);
+}
+
+/* ── LOADING ── */
+.loading-spinner {
+  display: inline-block; width: 20px; height: 20px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TOAST ── */
+.toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--bg-card); border: 1px solid var(--border2);
+  border-radius: var(--r-md); padding: 12px 16px;
+  display: flex; align-items: center; gap: 10px;
+  font-size: 13px; color: var(--text-1);
+  box-shadow: var(--shadow); min-width: 240px; max-width: 360px;
+  animation: toastIn 0.2s ease;
+}
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error   { border-left: 3px solid var(--red); }
+.toast.info    { border-left: 3px solid var(--accent); }
+.toast.warning { border-left: 3px solid var(--amber); }
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  padding: 8px 0 env(safe-area-inset-bottom, 8px);
+}
+.mobile-nav-inner { display: flex; justify-content: space-around; }
+.mobile-nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 16px; cursor: pointer;
+  color: var(--text-3); transition: color 0.15s;
+  font-size: 10px; font-weight: 500;
+}
+.mobile-nav-item.active { color: var(--accent); }
+.mobile-nav-icon { font-size: 20px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .mobile-nav { display: block; }
+  .main-content { padding: 16px 14px 80px; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .farm-grid { grid-template-columns: 1fr; }
+  .filter-bar { gap: 6px; }
+  .filter-select { min-width: 100px; }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .kpi-value { font-size: 1.4rem; }
+}
+
+/* ── MISC ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.text-mono { font-family: var(--mono); }
+.text-muted { color: var(--text-3); }
+.text-sm { font-size: 12px; }
+.flex { display: flex; } .flex-col { flex-direction: column; }
+.items-center { align-items: center; } .justify-between { justify-content: space-between; }
+.gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+.mb-1 { margin-bottom: 4px; } .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; } .mb-5 { margin-bottom: 20px; }
+.mt-auto { margin-top: auto; }
+.w-full { width: 100%; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .grid-2, .grid-3 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useMemo, useRef } = React;
+const {
+  LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+  AreaChart, Area, ComposedChart
+} = Recharts;
+
+// ══════════════════════════════════════════════════════════════
+//  CONFIG — ใส่ Web App URL ของ Google Apps Script ตรงนี้
+// ══════════════════════════════════════════════════════════════
+const SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const SECRET_TOKEN = 'enervue-token-2569'; // ต้องตรงกับใน settings sheet
+
+// ── FARM COLORS ──────────────────────────────────────────────
+const FARM_COLORS = ['#38bdf8','#4ade80','#fbbf24','#f472b6','#a78bfa'];
+const MONTHS_TH = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const MONTHS_EN = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── FORMAT HELPERS ───────────────────────────────────────────
+const fmt = {
+  thb:   v => '฿' + Number(v||0).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2}),
+  kwh:   v => Number(v||0).toLocaleString() + ' kWh',
+  kw:    v => Number(v||0).toLocaleString() + ' kW',
+  num:   v => Number(v||0).toLocaleString(),
+  pct:   v => Number(v||0).toFixed(1) + '%',
+  short: v => {
+    const n = Number(v||0);
+    if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return (n/1e3).toFixed(1) + 'K';
+    return n.toLocaleString();
+  },
+};
+
+// ── API CALLS ─────────────────────────────────────────────────
+async function apiGet(action, params = {}) {
+  if (!SCRIPT_URL || SCRIPT_URL.includes('YOUR_APPS')) {
+    throw new Error('กรุณาตั้งค่า SCRIPT_URL ก่อนใช้งาน');
+  }
+  const url = new URL(SCRIPT_URL);
+  url.searchParams.set('action', action);
+  url.searchParams.set('token', SECRET_TOKEN);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'API error');
+  return data.data;
+}
+
+async function apiPost(action, payload) {
+  if (!SCRIPT_URL || SCRIPT_URL.includes('YOUR_APPS')) {
+    throw new Error('กรุณาตั้งค่า SCRIPT_URL ก่อนใช้งาน');
+  }
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action, token: SECRET_TOKEN, ...payload }),
+  });
+  const data = await res.json();
+  if (!data.ok && !data.duplicate) throw new Error(data.error || 'API error');
+  return data;
+}
+
+// ── PEA PDF PARSER ────────────────────────────────────────────
+async function parsePEAPdf(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map(s => s.str).join(' ') + '\n';
+  }
+  return parsePEAText(fullText, file.name);
+}
+
+function parsePEAText(text, filename) {
+  const t = text.replace(/\s+/g,' ');
+  const g = (pattern, group = 1, fallback = '') => {
+    const m = t.match(pattern);
+    return m ? (m[group] || '').trim() : fallback;
+  };
+  const gFloat = (pattern, group = 1) => parseFloat(g(pattern, group).replace(/,/g,'')) || 0;
+  const gInt   = (pattern, group = 1) => parseInt(g(pattern, group).replace(/,/g,''))  || 0;
+
+  // ── Invoice & Account ──
+  const invoiceNo = g(/#(\d+)/);
+  const caNo      = g(/(?:CA\/Ref\.No\.1|หมายเลขผู้ใช้ไฟฟ้า)\s+(\d+)/);
+
+  // ── Bill Period ──
+  const billPeriod = g(/(\d{2}\/\d{4})\s+(?:22|11)/);
+  const [bMonth, bYear] = billPeriod ? billPeriod.split('/') : ['0','0'];
+  const year  = parseInt(bYear)  || 0;
+  const month = parseInt(bMonth) || 0;
+
+  // ── Location ──
+  const location = g(/สถานที่ใช้ไฟฟ้า\s+(.+?)(?:หมายเลขผู้ใช้|CA\/Ref)/);
+
+  // ── Meter info ──
+  const meterReadingDate = g(/(\d{2}\/\d{2}\/\d{4})\s+\d{2}\/\d{4}/);
+  const voltage          = g(/(22-33 KV|33 KV|115 KV)/i);
+  const multiplier       = gInt(/(?:ตัวคูณ|Multi)\s+(\d+)/);
+  const meterType        = g(/(\d{4})\s+\d{2}\/\d{2}\/\d{4}/);
+
+  // ── Peak Demand (kW) ──
+  const peakKw     = gFloat(/Peak\s+([\d,.]+)\s+กว/);
+  const offpeakKw  = gFloat(/Off Peak\s+([\d,.]+)\s+กว/);
+  const holidayKw  = gFloat(/(?:H|Holiday)\s+([\d,.]+)\s+(?:กว|กิโลวัตต์)/);
+
+  // ── Energy (kWh) ──
+  const peakKwh    = gFloat(/Peak\s+[\d,.]+\s+หน่วย/);
+  // off-peak kWh: OP row จาก usage detail
+  const usageMatch = t.match(/พลังงานไฟฟ้า.*?OP\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)/);
+  const offpeakKwh = usageMatch ? parseFloat(usageMatch[3].replace(/,/g,'')) || 0 : 0;
+  const histMatch  = t.match(/H\s+([\d,.]+)\s+([\d,.]+)\s+([\d,.]+)(?:\s+รวม)?/);
+  const holidayKwh = histMatch  ? parseFloat(histMatch[3].replace(/,/g,'')) || 0 : 0;
+  const kwhTotal   = gFloat(/รวม\s+([\d,.]+\.?\d*)\s*\n/);
+
+  // ── Amounts ──
+  const totalThb    = gFloat(/รวมเงินทั้งสิ้น.*?([\d,.]+)/);
+  const baseThb     = gFloat(/รวมเงินค่าไฟฟ้าฐาน.*?([\d,.]+)/);
+  const ftThb       = gFloat(/ค่า Ft.*?=[\d.]+.*?([\d,.]+)(?:\s|$)/);
+  const vatThb      = gFloat(/ภาษีมูลค่าเพิ่ม.*?([\d,.]+)(?:\s|$)/);
+  const pfPenalty   = gFloat(/ค่าเพาเวอร์แฟคเตอร์\s+([\d,.]+)/);
+  const ftRate      = gFloat(/Ft\s+[ก-ฮ.]+\d+-[ก-ฮ.]+\d+=\s*([\d.]+)/);
+
+  // ── Due date ──
+  const dueDate = g(/(\d+\s+[ก-ฮ]+\s+\d{4})/);
+
+  // ── PEA codes ──
+  const peaCode = g(/([A-Z]\d{5})\s+[A-Z]{4}\d{4}/);
+  const mru     = g(/[A-Z]\d{5}\s+([A-Z]{4}\d{4})/);
+  const peaNo   = g(/[A-Z]{4}\d{4}\s+(\d{8,10})/);
+
+  // ── Usage History (6 months) ──
+  const historyRows = [];
+  const histReg = /(\d{2}\/\d{2}\/\d{2})\s+([\d,.]+)/g;
+  let hm;
+  while ((hm = histReg.exec(t)) !== null) {
+    const [d, m2, y2] = hm[1].split('/');
+    const fullYear = 2500 + parseInt(y2);
+    historyRows.push({
+      reading_date: hm[1],
+      year: fullYear,
+      month: parseInt(m2),
+      kwh_total: parseFloat(hm[2].replace(/,/g,'')) || 0,
+    });
+    if (historyRows.length >= 6) break;
+  }
+
+  const isValid = invoiceNo && caNo && totalThb > 0;
+
+  return {
+    invoice_no: invoiceNo,
+    ca_no: caNo,
+    year, month,
+    location,
+    farm_name: '', // จะ map จาก meters
+    total_thb: totalThb,
+    base_thb: baseThb,
+    ft_thb: ftThb,
+    vat_thb: vatThb,
+    pf_penalty_thb: pfPenalty,
+    kwh_total: kwhTotal || (peakKwh + offpeakKwh + holidayKwh),
+    peak_kwh: peakKwh,
+    offpeak_kwh: offpeakKwh,
+    holiday_kwh: holidayKwh,
+    peak_kw: peakKw,
+    offpeak_kw: offpeakKw,
+    holiday_kw: holidayKw,
+    ft_rate: ftRate,
+    multiplier,
+    meter_type: meterType,
+    voltage,
+    due_date: dueDate,
+    bill_period: billPeriod,
+    meter_reading_date: meterReadingDate,
+    pea_code: peaCode,
+    mru, pea_no: peaNo,
+    history: historyRows,
+    _filename: filename,
+    _valid: isValid,
+    _error: isValid ? null : 'ไม่พบข้อมูลสำคัญในไฟล์นี้',
+  };
+}
+
+// ── TOU GRADE ─────────────────────────────────────────────────
+function calcTouGrade(peakKwh, offpeakKwh, holidayKwh) {
+  const total = peakKwh + offpeakKwh + holidayKwh;
+  if (!total) return 'N/A';
+  const offRatio = (offpeakKwh + holidayKwh) / total * 100;
+  if (offRatio >= 70) return 'A';
+  if (offRatio >= 60) return 'B';
+  if (offRatio >= 50) return 'C';
+  return 'D';
+}
+
+// ── TOAST HOOK ────────────────────────────────────────────────
+function useToast() {
+  const [toasts, setToasts] = useState([]);
+  const add = useCallback((msg, type = 'info', duration = 4000) => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), duration);
+  }, []);
+  return { toasts, toast: add };
+}
+
+// ══════════════════════════════════════════════════════════════
+//  COMPONENTS
+// ══════════════════════════════════════════════════════════════
+
+// ── Toast ─────────────────────────────────────────────────────
+function Toasts({ toasts }) {
+  return (
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast ${t.type}`}>
+          <span>{t.type==='success'?'✓':t.type==='error'?'✗':t.type==='warning'?'⚠':'ℹ'}</span>
+          <span>{t.msg}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Loading ───────────────────────────────────────────────────
+function LoadingScreen({ msg = 'กำลังโหลด...' }) {
+  return (
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', minHeight:'300px', gap:'16px', color:'var(--text-2)' }}>
+      <div className="loading-spinner" style={{ width:32, height:32 }} />
+      <span style={{ fontSize:'13px' }}>{msg}</span>
+    </div>
+  );
+}
+
+// ── Login Screen ──────────────────────────────────────────────
+function LoginScreen({ onLogin, settings }) {
+  const [pw, setPw] = useState('');
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!pw) { setErr('กรุณากรอกรหัสผ่าน'); return; }
+    setLoading(true);
+    try {
+      const res = await apiPost('verifyPassword', { password: pw });
+      if (res.ok) { onLogin(); }
+      else { setErr('รหัสผ่านไม่ถูกต้อง'); setLoading(false); }
+    } catch(e) {
+      // fallback: check local if no backend configured
+      if (SCRIPT_URL.includes('YOUR_APPS')) {
+        if (pw === 'admin1234') onLogin();
+        else { setErr('รหัสผ่านไม่ถูกต้อง'); }
+      } else {
+        setErr('เชื่อมต่อ backend ไม่ได้: ' + e.message);
+      }
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="login-screen">
+      <div className="login-card">
+        <div className="login-logo">
+          <div className="login-logo-icon">⚡</div>
+          <div className="login-title">{settings?.PROJECT_NAME || 'EnerVue'}</div>
+          <div className="login-sub">{settings?.PROJECT_TAGLINE || 'Intelligent Energy Analytics'}</div>
+          <div style={{ fontSize:'11px', color:'var(--text-3)', marginTop:'4px' }}>{settings?.COMPANY_NAME || 'CP Foods Aquaculture'}</div>
+        </div>
+        <div style={{ marginBottom:'12px' }}>
+          <label style={{ fontSize:'12px', color:'var(--text-3)', display:'block', marginBottom:'6px' }}>รหัสผ่าน Admin</label>
+          <input
+            type="password"
+            className={`login-input ${err ? 'error' : ''}`}
+            placeholder="กรอกรหัสผ่าน"
+            value={pw}
+            onChange={e => { setPw(e.target.value); setErr(''); }}
+            onKeyDown={e => e.key === 'Enter' && handleLogin()}
+          />
+          {err && <div style={{ fontSize:'12px', color:'var(--red)', marginTop:'6px' }}>{err}</div>}
+        </div>
+        <button className="login-btn" onClick={handleLogin} disabled={loading}>
+          {loading ? <span className="loading-spinner" /> : 'เข้าสู่ระบบ →'}
+        </button>
+        <div style={{ fontSize:'11px', color:'var(--text-3)', textAlign:'center', marginTop:'20px' }}>
+          EnerVue v1.0 · CP Foods Aquaculture · 2569
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── KPI Card ──────────────────────────────────────────────────
+function KpiCard({ label, value, sub, badge, badgeType = 'neutral', color = 'accent', icon }) {
+  return (
+    <div className={`kpi-card ${color}`}>
+      <div className="kpi-label">{icon && <span style={{marginRight:4}}>{icon}</span>}{label}</div>
+      <div className="kpi-value">{value}</div>
+      {sub && <div className="kpi-sub">{sub}</div>}
+      {badge && <div className={`kpi-badge ${badgeType}`}>{badge}</div>}
+    </div>
+  );
+}
+
+// ── Custom Tooltip ─────────────────────────────────────────────
+function CustomTooltip({ active, payload, label, formatter }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ background:'var(--bg-card2)', border:'1px solid var(--border2)', borderRadius:'var(--r-md)', padding:'10px 14px', fontSize:'12px' }}>
+      <div style={{ color:'var(--text-3)', marginBottom:'6px', fontWeight:600 }}>{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} style={{ display:'flex', gap:'8px', alignItems:'center', marginBottom:'3px' }}>
+          <span style={{ width:8, height:8, borderRadius:'50%', background:p.color, flexShrink:0, display:'inline-block' }} />
+          <span style={{ color:'var(--text-2)' }}>{p.name}:</span>
+          <span style={{ color:'var(--text-1)', fontFamily:'var(--mono)', fontWeight:600 }}>
+            {formatter ? formatter(p.value, p.name) : p.value?.toLocaleString()}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Overview Tab ──────────────────────────────────────────────
+function OverviewTab({ bills, meters, settings, lang }) {
+  const M = lang === 'th' ? MONTHS_TH : MONTHS_EN;
+
+  const latestBills = useMemo(() => {
+    if (!bills.length) return [];
+    const maxYear  = Math.max(...bills.map(b => Number(b.year)));
+    const maxMonth = Math.max(...bills.filter(b => Number(b.year) === maxYear).map(b => Number(b.month)));
+    return bills.filter(b => Number(b.year) === maxYear && Number(b.month) === maxMonth);
+  }, [bills]);
+
+  const totalThb  = latestBills.reduce((s,b) => s + Number(b.total_thb||0), 0);
+  const totalKwh  = latestBills.reduce((s,b) => s + Number(b.kwh_total||0), 0);
+  const totalFt   = latestBills.reduce((s,b) => s + Number(b.ft_thb||0), 0);
+  const maxPeakKw = latestBills.reduce((s,b) => Math.max(s, Number(b.peak_kw||0)), 0);
+
+  // 6-month trend
+  const trendData = useMemo(() => {
+    const grouped = {};
+    bills.forEach(b => {
+      const key = `${b.year}-${String(b.month).padStart(2,'0')}`;
+      if (!grouped[key]) grouped[key] = { label: M[Number(b.month)]+' '+b.year, thb:0, kwh:0 };
+      grouped[key].thb += Number(b.total_thb||0);
+      grouped[key].kwh += Number(b.kwh_total||0);
+    });
+    return Object.values(grouped).sort((a,b) => a.label.localeCompare(b.label)).slice(-6);
+  }, [bills, lang]);
+
+  // Smart insights
+  const insights = useMemo(() => {
+    const list = [];
+    if (!bills.length) return list;
+
+    // ข้อมูล 2 เดือนล่าสุด
+    const sortedBills = [...bills].sort((a,b) => (Number(b.year)*12+Number(b.month)) - (Number(a.year)*12+Number(a.month)));
+    const months = [...new Set(sortedBills.map(b => `${b.year}-${b.month}`))].slice(0, 2);
+
+    if (months.length >= 2) {
+      const curr = bills.filter(b => `${b.year}-${b.month}` === months[0]);
+      const prev = bills.filter(b => `${b.year}-${b.month}` === months[1]);
+      const currThb = curr.reduce((s,b) => s+Number(b.total_thb||0),0);
+      const prevThb = prev.reduce((s,b) => s+Number(b.total_thb||0),0);
+      if (prevThb > 0) {
+        const pct = ((currThb - prevThb)/prevThb*100).toFixed(1);
+        const arr = pct >= 0 ? '↑' : '↓';
+        list.push({ type: pct>=0?'warn':'good', text: `ค่าไฟรวมเดือนล่าสุด ${arr} ${Math.abs(pct)}% จากเดือนก่อน (${fmt.thb(currThb)})` });
+      }
+    }
+
+    // Power Factor warning
+    const pfBills = latestBills.filter(b => Number(b.pf_penalty_thb||0) > 0);
+    if (pfBills.length > 0) {
+      const pfTotal = pfBills.reduce((s,b)=>s+Number(b.pf_penalty_thb||0),0);
+      list.push({ type:'warn', text: `มีค่าปรับ Power Factor ${fmt.thb(pfTotal)} ใน ${pfBills.length} มิเตอร์ — ควรปรับปรุง Power Factor Correction` });
+    }
+
+    // TOU efficiency
+    const lowTou = latestBills.filter(b => {
+      const total = Number(b.peak_kwh||0)+Number(b.offpeak_kwh||0)+Number(b.holiday_kwh||0);
+      return total > 0 && Number(b.peak_kwh||0)/total > 0.35;
+    });
+    if (lowTou.length > 0) {
+      list.push({ type:'info', text: `${lowTou.length} มิเตอร์มีสัดส่วน On-Peak เกิน 35% — มีโอกาส Load Shift เพื่อประหยัดค่าไฟ` });
+    }
+
+    // FT burden
+    if (totalFt > 0) {
+      const ftPct = (totalFt/totalThb*100).toFixed(1);
+      list.push({ type:'info', text: `ค่า FT คิดเป็น ${ftPct}% ของค่าไฟรวม (${fmt.thb(totalFt)}) อัตรา FT ปัจจุบัน ${settings?.FT_RATE_CURRENT||0.1623} บาท/หน่วย` });
+    }
+
+    if (!list.length) list.push({ type:'good', text: 'ระบบทำงานปกติ ไม่มีความผิดปกติที่ตรวจพบ' });
+    return list;
+  }, [bills, latestBills, totalThb, totalFt, settings]);
+
+  const meterMap = useMemo(() => {
+    const m = {};
+    meters.forEach(x => { m[x.ca_no] = x; });
+    return m;
+  }, [meters]);
+
+  const latestYear  = latestBills[0]?.year  || '-';
+  const latestMonth = latestBills[0]?.month ? M[Number(latestBills[0].month)] : '-';
+
+  return (
+    <div>
+      <div className="section-header">
+        <div>
+          <div className="section-title">Overview</div>
+          <div className="section-sub">ข้อมูลล่าสุด: {latestMonth} {latestYear} · {latestBills.length} มิเตอร์</div>
+        </div>
+      </div>
+
+      {/* KPI */}
+      <div className="kpi-grid">
+        <KpiCard label="ค่าไฟรวม (รวม VAT)" value={fmt.short(totalThb)+' ฿'} sub={fmt.thb(totalThb)} color="accent" icon="⚡" />
+        <KpiCard label="พลังงานรวม" value={fmt.short(totalKwh)} sub="kWh รวมทุกมิเตอร์" color="green" icon="📊" />
+        <KpiCard label="Peak Demand สูงสุด" value={fmt.kw(maxPeakKw)} sub="สูงสุดในรอบเดือน" color="amber" icon="⚠" />
+        <KpiCard label="ค่า FT รวม" value={fmt.short(totalFt)+' ฿'} sub={`FT Rate ${settings?.FT_RATE_CURRENT||0.1623} ฿/หน่วย`} color="purple" icon="📋" />
+      </div>
+
+      {/* Farm Cards */}
+      <div className="section-header">
+        <div className="section-title" style={{ fontSize:'14px' }}>รายฟาร์ม</div>
+      </div>
+      <div className="farm-grid mb-5">
+        {latestBills.length === 0 ? (
+          <div className="card" style={{ textAlign:'center', padding:'40px', gridColumn:'1/-1' }}>
+            <div style={{ fontSize:'32px', marginBottom:'12px', opacity:0.4 }}>📂</div>
+            <div style={{ color:'var(--text-2)', fontSize:'14px' }}>ยังไม่มีข้อมูล — ไปที่ "Import PDF" เพื่อเพิ่มบิล</div>
+          </div>
+        ) : latestBills.map((b, i) => {
+          const meter = meterMap[b.ca_no] || {};
+          const fname = meter.farm_name || b.farm_name || b.ca_no;
+          const grade = calcTouGrade(Number(b.peak_kwh||0), Number(b.offpeak_kwh||0), Number(b.holiday_kwh||0));
+          const color = FARM_COLORS[i % FARM_COLORS.length];
+          return (
+            <div key={b.ca_no || i} className="farm-card" style={{ '--farm-color': color }}>
+              <div style={{ position:'absolute', top:0, bottom:0, left:0, width:3, background:color, borderRadius:'var(--r-lg) 0 0 var(--r-lg)' }} />
+              <div style={{ paddingLeft:8 }}>
+                <div className="farm-name" style={{ color }}>{fname}</div>
+                <div className="farm-addr">{b.location || meter.address || ''}</div>
+                <div className="farm-stats">
+                  <div>
+                    <div className="farm-stat-val">{fmt.short(Number(b.total_thb||0))} ฿</div>
+                    <div className="farm-stat-lbl">ค่าไฟรวม</div>
+                  </div>
+                  <div>
+                    <div className="farm-stat-val">{fmt.short(Number(b.kwh_total||0))}</div>
+                    <div className="farm-stat-lbl">kWh</div>
+                  </div>
+                  <div>
+                    <div className="farm-stat-val">{b.peak_kw} kW</div>
+                    <div className="farm-stat-lbl">Peak</div>
+                  </div>
+                  <div>
+                    <div className={`grade-circle grade-${grade}`} style={{ width:36, height:36, fontSize:15 }}>{grade}</div>
+                    <div className="farm-stat-lbl" style={{ marginTop:2 }}>TOU</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Trend Chart */}
+      {trendData.length > 0 && (
+        <div className="card mb-5">
+          <div className="chart-title">แนวโน้มค่าไฟรวม 6 เดือนล่าสุด</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={trendData} margin={{ top:5, right:10, left:10, bottom:5 }}>
+              <defs>
+                <linearGradient id="gradThb" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#38bdf8" stopOpacity={0.25}/>
+                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+              <XAxis dataKey="label" tick={{ fill:'var(--text-3)', fontSize:11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill:'var(--text-3)', fontSize:11 }} axisLine={false} tickLine={false} tickFormatter={v => fmt.short(v)} />
+              <Tooltip content={<CustomTooltip formatter={(v) => fmt.thb(v)} />} />
+              <Area type="monotone" dataKey="thb" name="ค่าไฟรวม" stroke="#38bdf8" fill="url(#gradThb)" strokeWidth={2} dot={{ fill:'#38bdf8', r:3 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Insights */}
+      <div className="card">
+        <div className="chart-title" style={{ marginBottom:12 }}>⚡ Smart Insights</div>
+        {insights.map((ins, i) => (
+          <div key={i} className="insight-item">
+            <div className="insight-dot" style={{ background: ins.type==='warn'?'var(--amber)':ins.type==='good'?'var(--green)':'var(--accent)' }} />
+            <div className="insight-text">{ins.text}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Analytics Tab ─────────────────────────────────────────────
+function AnalyticsTab({ bills, meters, settings, lang }) {
+  const M = lang === 'th' ? MONTHS_TH : MONTHS_EN;
+  const [filterYear,  setFilterYear]  = useState('all');
+  const [filterFarm,  setFilterFarm]  = useState('all');
+  const [chartMetric, setChartMetric] = useState('thb');
+
+  const years  = [...new Set(bills.map(b => String(b.year)))].sort().reverse();
+  const meterMap = useMemo(() => {
+    const m = {};
+    meters.forEach(x => { m[x.ca_no] = x; });
+    return m;
+  }, [meters]);
+
+  const filtered = useMemo(() => {
+    let d = bills;
+    if (filterYear !== 'all') d = d.filter(b => String(b.year) === filterYear);
+    if (filterFarm !== 'all') d = d.filter(b => b.ca_no === filterFarm);
+    return d;
+  }, [bills, filterYear, filterFarm]);
+
+  // Monthly trend per farm
+  const monthlyData = useMemo(() => {
+    const grouped = {};
+    filtered.forEach(b => {
+      const key = `${b.year}-${String(b.month).padStart(2,'0')}`;
+      if (!grouped[key]) grouped[key] = { label: M[Number(b.month)]+' '+String(b.year).slice(-2) };
+      const fname = (meterMap[b.ca_no]?.farm_name || b.farm_name || b.ca_no).replace('ศูนย์','ศ.').replace('วิจัย','ว.').replace('ปรับปรุงพันธุ์สัตว์น้ำ','ปปน.');
+      grouped[key][fname] = (grouped[key][fname]||0) + Number(b[chartMetric==='thb'?'total_thb':chartMetric==='kwh'?'kwh_total':'peak_kw']||0);
+    });
+    return Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([,v]) => v);
+  }, [filtered, chartMetric, meterMap, lang]);
+
+  // YoY
+  const yoyData = useMemo(() => {
+    const farmGroups = {};
+    bills.forEach(b => {
+      const fname = meterMap[b.ca_no]?.farm_name || b.farm_name || b.ca_no;
+      if (!farmGroups[b.ca_no]) farmGroups[b.ca_no] = { name: fname, byYear: {} };
+      const yr = String(b.year);
+      farmGroups[b.ca_no].byYear[yr] = (farmGroups[b.ca_no].byYear[yr]||0) + Number(b.total_thb||0);
+    });
+    return Object.values(farmGroups).map(f => {
+      const yr = Object.keys(f.byYear).sort().reverse();
+      return { name: f.name.replace('ศูนย์','ศ.'), ...yr.reduce((o,y,i) => ({ ...o, [`ปี ${y}`]: f.byYear[y] }), {}) };
+    });
+  }, [bills, meterMap]);
+
+  // TOU Breakdown
+  const touData = useMemo(() => {
+    const peak = filtered.reduce((s,b) => s+Number(b.peak_kwh||0),0);
+    const off  = filtered.reduce((s,b) => s+Number(b.offpeak_kwh||0),0);
+    const hol  = filtered.reduce((s,b) => s+Number(b.holiday_kwh||0),0);
+    return [
+      { name:'On-Peak',    value: peak, color:'#f87171' },
+      { name:'Off-Peak',   value: off,  color:'#4ade80' },
+      { name:'Holiday',    value: hol,  color:'#a78bfa' },
+    ].filter(d => d.value > 0);
+  }, [filtered]);
+
+  // Farm ranking
+  const rankData = useMemo(() => {
+    const r = {};
+    filtered.forEach(b => {
+      const fname = (meterMap[b.ca_no]?.farm_name||b.farm_name||b.ca_no).replace('ศูนย์','ศ.');
+      if (!r[b.ca_no]) r[b.ca_no] = { name: fname, thb:0, kwh:0 };
+      r[b.ca_no].thb += Number(b.total_thb||0);
+      r[b.ca_no].kwh += Number(b.kwh_total||0);
+    });
+    return Object.values(r).sort((a,b) => b.thb - a.thb);
+  }, [filtered, meterMap]);
+
+  const allFarmNames = useMemo(() => [...new Set(bills.map(b => b.ca_no))].map(ca => ({
+    ca_no: ca,
+    name: meterMap[ca]?.farm_name || ca
+  })), [bills, meterMap]);
+
+  const yoyYears = useMemo(() => [...new Set(bills.map(b => `ปี ${b.year}`))].sort(), [bills]);
+  const yoyColors = ['#38bdf8','#4ade80','#fbbf24','#f472b6'];
+
+  if (!bills.length) {
+    return (
+      <div className="card" style={{ textAlign:'center', padding:'60px' }}>
+        <div style={{ fontSize:'48px', marginBottom:'16px', opacity:0.3 }}>📈</div>
+        <div style={{ color:'var(--text-2)' }}>ยังไม่มีข้อมูล — กรุณา Import PDF ก่อน</div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="section-header">
+        <div><div className="section-title">Analytics</div><div className="section-sub">วิเคราะห์ข้อมูลเชิงลึก</div></div>
+      </div>
+
+      {/* Filters */}
+      <div className="filter-bar">
+        <select className="filter-select" value={filterYear} onChange={e => setFilterYear(e.target.value)}>
+          <option value="all">ทุกปี</option>
+          {years.map(y => <option key={y} value={y}>ปี {y}</option>)}
+        </select>
+        <select className="filter-select" value={filterFarm} onChange={e => setFilterFarm(e.target.value)}>
+          <option value="all">ทุกฟาร์ม</option>
+          {allFarmNames.map(f => <option key={f.ca_no} value={f.ca_no}>{f.name}</option>)}
+        </select>
+        <button className={`filter-btn ${chartMetric==='thb'?'active':''}`}   onClick={() => setChartMetric('thb')}>฿ บาท</button>
+        <button className={`filter-btn ${chartMetric==='kwh'?'active':''}`}   onClick={() => setChartMetric('kwh')}>kWh</button>
+        <button className={`filter-btn ${chartMetric==='peak_kw'?'active':''}`} onClick={() => setChartMetric('peak_kw')}>Peak kW</button>
+      </div>
+
+      {/* Monthly Trend */}
+      <div className="card mb-5">
+        <div className="chart-title">แนวโน้มรายเดือน — {chartMetric==='thb'?'ค่าไฟ (บาท)':chartMetric==='kwh'?'พลังงาน (kWh)':'Peak Demand (kW)'}</div>
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={monthlyData} margin={{ top:5, right:10, left:10, bottom:5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <XAxis dataKey="label" tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill:'var(--text-3)', fontSize:10 }} axisLine={false} tickLine={false} tickFormatter={v => fmt.short(v)} />
+            <Tooltip content={<CustomTooltip formatter={(v) => chartMetric==='thb'?fmt.thb(v):fmt.num(v)} />} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:11, color:'var(--text-2)' }} />
+            {Object.keys(monthlyData[0]||{}).filter(k => k!=='label').map((k, i) => (
+              <Line key={k} type="monotone" dataKey={k} stroke={FARM_COLORS[i%FARM_COLORS.length]} strokeWidth={2} dot={false} activeDot={{ r:4 }} />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      {/* YoY + TOU */}
+      <div className="grid-2 mb-5">
+        {/* YoY */}
+        <div className="card">
+          <div className="chart-title">Year-over-Year (ค่าไฟ)</div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={yoyData} margin={{ top:5, right:5, left:5, bottom:5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+              <XAxis dataKey="name" tick={{ fill:'var(--text-3)', fontSize:9 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill:'var(--text-3)', fontSize:9 }} axisLine={false} tickLine={false} tickFormatter={v => fmt.short(v)} />
+              <Tooltip content={<CustomTooltip formatter={(v) => fmt.thb(v)} />} />
+              <Legend iconSize={8} wrapperStyle={{ fontSize:11 }} />
+              {yoyYears.map((y, i) => <Bar key={y} dataKey={y} fill={yoyColors[i%yoyColors.length]} radius={[3,3,0,0]} />)}
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* TOU Pie */}
+        <div className="card">
+          <div className="chart-title">สัดส่วน TOU</div>
+          {touData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie data={touData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                  {touData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                </Pie>
+                <Tooltip content={<CustomTooltip formatter={(v) => fmt.kwh(v)} />} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize:11 }} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <div style={{ textAlign:'center', padding:'40px', color:'var(--text-3)' }}>ไม่มีข้อมูล TOU</div>}
+        </div>
+      </div>
+
+      {/* Farm Ranking */}
+      <div className="card">
+        <div className="chart-title">Ranking ฟาร์ม — ค่าไฟสูงสุด</div>
+        <div style={{ overflowX:'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>ฟาร์ม</th>
+                <th style={{ textAlign:'right' }}>ค่าไฟรวม (฿)</th>
+                <th style={{ textAlign:'right' }}>kWh รวม</th>
+                <th style={{ textAlign:'right' }}>฿/หน่วย</th>
+                <th>% ของทั้งหมด</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rankData.map((r, i) => {
+                const totalAll = rankData.reduce((s,x) => s+x.thb, 0);
+                const pct = totalAll > 0 ? (r.thb/totalAll*100) : 0;
+                const unitCost = r.kwh > 0 ? r.thb/r.kwh : 0;
+                return (
+                  <tr key={i}>
+                    <td><span style={{ width:22, height:22, borderRadius:'50%', background:FARM_COLORS[i], display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, color:'#000' }}>{i+1}</span></td>
+                    <td><span style={{ fontWeight:500, color:'var(--text-1)' }}>{r.name}</span></td>
+                    <td className="num">{fmt.thb(r.thb)}</td>
+                    <td className="num">{fmt.num(Math.round(r.kwh))}</td>
+                    <td className="num">{unitCost.toFixed(2)}</td>
+                    <td>
+                      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                        <div className="progress-bar" style={{ flex:1 }}>
+                          <div className="progress-fill" style={{ width:`${pct}%`, background:FARM_COLORS[i] }} />
+                        </div>
+                        <span style={{ fontSize:11, color:'var(--text-3)', minWidth:35 }}>{pct.toFixed(1)}%</span>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Import Tab ────────────────────────────────────────────────
+function ImportTab({ onImported, meters, toast }) {
+  const [dragging, setDragging]   = useState(false);
+  const [previews, setPreviews]   = useState([]);
+  const [parsing,  setParsing]    = useState(false);
+  const [saving,   setSaving]     = useState(false);
+  const [recentImports, setRecentImports] = useState([]);
+  const dropRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const meterMap = useMemo(() => {
+    const m = {};
+    meters.forEach(x => { m[x.ca_no] = x; });
+    return m;
+  }, [meters]);
+
+  const handleFiles = async (files) => {
+    if (!files.length) return;
+    setParsing(true);
+    const results = [];
+    for (const file of files) {
+      if (!file.name.endsWith('.pdf')) {
+        results.push({ _filename: file.name, _valid: false, _error: 'ไม่ใช่ไฟล์ PDF' });
+        continue;
+      }
+      try {
+        const parsed = await parsePEAPdf(file);
+        parsed.farm_name = meterMap[parsed.ca_no]?.farm_name || parsed.farm_name || parsed.ca_no || 'ไม่ทราบชื่อ';
+        results.push(parsed);
+      } catch(e) {
+        results.push({ _filename: file.name, _valid: false, _error: e.message });
+      }
+    }
+    setPreviews(results);
+    setParsing(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault(); setDragging(false);
+    handleFiles([...e.dataTransfer.files].filter(f => f.type === 'application/pdf'));
+  };
+
+  const handleSave = async () => {
+    const valid = previews.filter(p => p._valid);
+    if (!valid.length) { toast('ไม่มีข้อมูลที่บันทึกได้', 'warning'); return; }
+    setSaving(true);
+    try {
+      // save history rows
+      const historyRows = valid.flatMap(p => (p.history||[]).map(h => ({ ...h, ca_no: p.ca_no, farm_name: p.farm_name })));
+      if (historyRows.length > 0) await apiPost('saveHistory', { data: historyRows });
+
+      // save bills
+      const res = await apiPost('saveBills', { data: valid });
+      toast(`บันทึก ${res.saved} บิล สำเร็จ${res.dups>0?` (ซ้ำ ${res.dups})`:''}`,'success');
+      setRecentImports(valid.map(p => ({ invoice: p.invoice_no, farm: p.farm_name, month: `${MONTHS_TH[Number(p.month)]} ${p.year}` })));
+      setPreviews([]);
+      onImported();
+    } catch(e) {
+      // offline fallback: save to localStorage
+      const key = 'enervue_bills_local';
+      const existing = JSON.parse(localStorage.getItem(key)||'[]');
+      const merged = [...existing, ...valid.filter(p => !existing.find(e => e.invoice_no === p.invoice_no))];
+      localStorage.setItem(key, JSON.stringify(merged));
+      toast(`บันทึกลง LocalStorage (backend ไม่พร้อม) — ${valid.length} บิล`, 'warning');
+      setPreviews([]);
+      onImported();
+    }
+    setSaving(false);
+  };
+
+  return (
+    <div>
+      <div className="section-header">
+        <div><div className="section-title">Import PDF</div><div className="section-sub">อัปโหลดใบแจ้งค่าไฟ PEA — รองรับหลายไฟล์พร้อมกัน</div></div>
+      </div>
+
+      {/* Drop Zone */}
+      {!previews.length && (
+        <div
+          ref={dropRef}
+          className={`drop-zone ${dragging?'dragover':''}`}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={handleDrop}
+          onClick={() => inputRef.current?.click()}
+        >
+          <input ref={inputRef} type="file" multiple accept=".pdf" style={{ display:'none' }} onChange={e => handleFiles([...e.target.files])} />
+          {parsing ? (
+            <>
+              <div className="loading-spinner" style={{ width:48, height:48, margin:'0 auto 16px' }} />
+              <div className="drop-title">กำลังอ่าน PDF...</div>
+            </>
+          ) : (
+            <>
+              <div className="drop-icon">📄</div>
+              <div className="drop-title">ลากไฟล์ PDF มาวางที่นี่</div>
+              <div className="drop-sub" style={{ marginBottom:12 }}>หรือคลิกเพื่อเลือกไฟล์ · รองรับหลายไฟล์พร้อมกัน</div>
+              <div className="drop-sub" style={{ fontSize:11, color:'var(--text-3)' }}>รองรับใบแจ้งค่าไฟฟ้า PEA Smart Invoice มาตรฐาน</div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Preview */}
+      {previews.length > 0 && (
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <div style={{ fontWeight:600 }}>ตรวจสอบข้อมูลก่อนบันทึก ({previews.length} ไฟล์)</div>
+            <div className="flex gap-2">
+              <button className="btn btn-secondary btn-sm" onClick={() => setPreviews([])}>← กลับ</button>
+              <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving || !previews.some(p=>p._valid)}>
+                {saving ? <span className="loading-spinner" /> : `💾 บันทึก ${previews.filter(p=>p._valid).length} บิล`}
+              </button>
+            </div>
+          </div>
+
+          {previews.map((p, i) => (
+            <div key={i} className="preview-card">
+              <div className={`preview-status ${p._valid?'ok':p._error?.includes('ซ้ำ')?'dup':'err'}`} />
+              <div style={{ flex:1, minWidth:0 }}>
+                <div className="flex justify-between items-center mb-1">
+                  <span style={{ fontWeight:600, fontSize:13 }}>{p.farm_name || p._filename}</span>
+                  <span style={{ fontSize:11, color:'var(--text-3)' }}>{p._filename}</span>
+                </div>
+                {p._valid ? (
+                  <div className="preview-fields">
+                    <div className="pf-item"><div className="pf-label">Invoice</div><div className="pf-val" style={{ fontSize:11 }}>{p.invoice_no}</div></div>
+                    <div className="pf-item"><div className="pf-label">เดือน</div><div className="pf-val">{MONTHS_TH[p.month]} {p.year}</div></div>
+                    <div className="pf-item"><div className="pf-label">ยอดรวม</div><div className="pf-val">{fmt.thb(p.total_thb)}</div></div>
+                    <div className="pf-item"><div className="pf-label">kWh รวม</div><div className="pf-val">{fmt.num(Math.round(p.kwh_total||0))}</div></div>
+                    <div className="pf-item"><div className="pf-label">Peak kW</div><div className="pf-val">{p.peak_kw}</div></div>
+                    <div className="pf-item"><div className="pf-label">ค่า FT</div><div className="pf-val">{fmt.thb(p.ft_thb)}</div></div>
+                    {p.pf_penalty_thb > 0 && <div className="pf-item"><div className="pf-label">Power Factor</div><div className="pf-val" style={{ color:'var(--amber)' }}>{fmt.thb(p.pf_penalty_thb)}</div></div>}
+                    <div className="pf-item"><div className="pf-label">ตัวคูณ</div><div className="pf-val">×{p.multiplier}</div></div>
+                  </div>
+                ) : (
+                  <div style={{ fontSize:12, color:'var(--red)', marginTop:4 }}>⚠ {p._error}</div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Recent Imports */}
+      {recentImports.length > 0 && (
+        <div className="card mt-4" style={{ marginTop:20 }}>
+          <div className="chart-title" style={{ marginBottom:12 }}>✅ บันทึกล่าสุด</div>
+          {recentImports.map((r, i) => (
+            <div key={i} className="flex gap-3 items-center" style={{ padding:'6px 0', borderBottom:'1px solid var(--border)', fontSize:13 }}>
+              <span style={{ color:'var(--green)' }}>✓</span>
+              <span style={{ color:'var(--text-1)', fontWeight:500 }}>{r.farm}</span>
+              <span style={{ color:'var(--text-3)' }}>{r.month}</span>
+              <span style={{ fontFamily:'var(--mono)', fontSize:11, color:'var(--text-3)', marginLeft:'auto' }}>{r.invoice}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Instructions */}
+      <div className="card" style={{ marginTop:20 }}>
+        <div style={{ fontWeight:600, fontSize:13, marginBottom:12, color:'var(--text-2)' }}>📋 วิธีใช้งาน</div>
+        {[
+          ['1','ลากไฟล์ PDF ใบแจ้งค่าไฟ PEA มาวางในกล่องด้านบน หรือคลิกเพื่อเลือกไฟล์'],
+          ['2','ตรวจสอบข้อมูลที่อ่านได้ — ระบบจะแสดง Preview ก่อนบันทึก'],
+          ['3','กดปุ่ม "บันทึก" — ข้อมูลจะซิงค์ขึ้น Google Sheets ทันที ทุกคนเห็นพร้อมกัน'],
+          ['4','ระบบจะแจ้งเตือนถ้า Invoice นั้นมีอยู่แล้ว ไม่บันทึกซ้ำ'],
+        ].map(([n,t]) => (
+          <div key={n} className="flex gap-3" style={{ padding:'5px 0', fontSize:12, color:'var(--text-2)', alignItems:'flex-start' }}>
+            <span style={{ width:20, height:20, borderRadius:'50%', background:'var(--bg-card2)', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, flexShrink:0, color:'var(--accent)' }}>{n}</span>
+            <span>{t}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Report Tab ────────────────────────────────────────────────
+function ReportTab({ bills, meters, settings, toast, lang }) {
+  const M = lang === 'th' ? MONTHS_TH : MONTHS_EN;
+  const [shiftPct, setShiftPct] = useState(10);
+  const [touRate, setTouRate]   = useState(settings?.TOU_DIFF_RATE || 1.58);
+  const reportRef = useRef(null);
+
+  const meterMap = useMemo(() => {
+    const m = {};
+    meters.forEach(x => { m[x.ca_no] = x; });
+    return m;
+  }, [meters]);
+
+  const latestBills = useMemo(() => {
+    if (!bills.length) return [];
+    const maxYear  = Math.max(...bills.map(b => Number(b.year)));
+    const maxMonth = Math.max(...bills.filter(b => Number(b.year) === maxYear).map(b => Number(b.month)));
+    return bills.filter(b => Number(b.year) === maxYear && Number(b.month) === maxMonth);
+  }, [bills]);
+
+  const totalThb = latestBills.reduce((s,b) => s+Number(b.total_thb||0),0);
+  const totalKwh = latestBills.reduce((s,b) => s+Number(b.kwh_total||0),0);
+  const totalPeakKwh = latestBills.reduce((s,b) => s+Number(b.peak_kwh||0),0);
+  const loadShiftSaving = totalPeakKwh * (shiftPct/100) * touRate;
+  const annualEstimate  = loadShiftSaving * 12;
+
+  // TOU per farm
+  const farmTouData = useMemo(() => latestBills.map((b, i) => {
+    const fname = (meterMap[b.ca_no]?.farm_name || b.farm_name || b.ca_no);
+    const grade = calcTouGrade(Number(b.peak_kwh||0), Number(b.offpeak_kwh||0), Number(b.holiday_kwh||0));
+    const total = Number(b.peak_kwh||0)+Number(b.offpeak_kwh||0)+Number(b.holiday_kwh||0);
+    return { fname, grade, peakPct: total>0?(Number(b.peak_kwh||0)/total*100).toFixed(1):0, color: FARM_COLORS[i] };
+  }), [latestBills, meterMap]);
+
+  const exportPDF = async () => {
+    if (!reportRef.current) return;
+    toast('กำลังสร้าง PDF...', 'info');
+    try {
+      const canvas = await html2canvas(reportRef.current, { backgroundColor:'#0a0f1e', scale:1.5 });
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation:'landscape', unit:'px', format:[canvas.width/1.5, canvas.height/1.5] });
+      pdf.addImage(canvas.toDataURL('image/jpeg',0.9), 'JPEG', 0, 0, canvas.width/1.5, canvas.height/1.5);
+      pdf.save(`EnerVue_Report_${latestBills[0]?.year}_${latestBills[0]?.month}.pdf`);
+      toast('Export PDF สำเร็จ ✓', 'success');
+    } catch(e) { toast('Export PDF ล้มเหลว: ' + e.message, 'error'); }
+  };
+
+  const exportExcel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+      const wsData = [
+        ['Invoice No.','CA No.','ฟาร์ม','ปี','เดือน','ยอดรวม (฿)','ค่าฐาน (฿)','ค่า FT (฿)','VAT (฿)','kWh รวม','On-Peak kWh','Off-Peak kWh','Holiday kWh','Peak kW','FT Rate','ตัวคูณ'],
+        ...bills.map(b => [
+          b.invoice_no, b.ca_no, meterMap[b.ca_no]?.farm_name||b.farm_name,
+          b.year, b.month, b.total_thb, b.base_thb, b.ft_thb, b.vat_thb,
+          b.kwh_total, b.peak_kwh, b.offpeak_kwh, b.holiday_kwh,
+          b.peak_kw, b.ft_rate, b.multiplier
+        ])
+      ];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(wsData), 'Bills');
+      XLSX.writeFile(wb, `EnerVue_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+      toast('Export Excel สำเร็จ ✓', 'success');
+    } catch(e) { toast('Export Excel ล้มเหลว: ' + e.message, 'error'); }
+  };
+
+  const latestLabel = latestBills[0] ? `${M[Number(latestBills[0].month)]} ${latestBills[0].year}` : '-';
+
+  return (
+    <div>
+      <div className="section-header">
+        <div><div className="section-title">Report</div><div className="section-sub">Executive Summary & Export</div></div>
+        <div className="flex gap-2">
+          <button className="btn btn-secondary btn-sm" onClick={exportExcel}>📥 Excel</button>
+          <button className="btn btn-primary btn-sm" onClick={exportPDF}>📄 PDF</button>
+        </div>
+      </div>
+
+      {/* Executive Report */}
+      <div ref={reportRef} className="card mb-5" style={{ padding:'24px' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:'20px', flexWrap:'wrap', gap:'12px' }}>
+          <div>
+            <div style={{ fontSize:'11px', color:'var(--text-3)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:'4px' }}>Executive Summary</div>
+            <div style={{ fontSize:'22px', fontWeight:700, letterSpacing:'-0.03em' }}>{settings?.PROJECT_NAME||'EnerVue'}</div>
+            <div style={{ fontSize:'12px', color:'var(--text-3)' }}>{settings?.COMPANY_NAME||'CP Foods Aquaculture'} · ประจำเดือน {latestLabel}</div>
+          </div>
+          <div style={{ textAlign:'right' }}>
+            <div style={{ fontSize:'11px', color:'var(--text-3)' }}>สร้างเมื่อ {new Date().toLocaleDateString('th-TH')}</div>
+            <div style={{ fontSize:'11px', color:'var(--text-3)' }}>จำนวนมิเตอร์: {latestBills.length}</div>
+          </div>
+        </div>
+
+        <div className="kpi-grid" style={{ marginBottom:'20px' }}>
+          <div className="kpi-card accent"><div className="kpi-label">ค่าไฟรวม</div><div className="kpi-value">{fmt.short(totalThb)} ฿</div><div className="kpi-sub">{fmt.thb(totalThb)}</div></div>
+          <div className="kpi-card green"><div className="kpi-label">พลังงานรวม</div><div className="kpi-value">{fmt.short(totalKwh)}</div><div className="kpi-sub">kWh รวมทุกมิเตอร์</div></div>
+          <div className="kpi-card amber"><div className="kpi-label">On-Peak kWh</div><div className="kpi-value">{fmt.short(totalPeakKwh)}</div><div className="kpi-sub">{totalKwh>0?(totalPeakKwh/totalKwh*100).toFixed(1):0}% ของทั้งหมด</div></div>
+          <div className="kpi-card purple"><div className="kpi-label">ค่า FT รวม</div><div className="kpi-value">{fmt.short(latestBills.reduce((s,b)=>s+Number(b.ft_thb||0),0))} ฿</div><div className="kpi-sub">{settings?.FT_RATE_CURRENT||0.1623} ฿/หน่วย</div></div>
+        </div>
+
+        {/* TOU per farm */}
+        <div style={{ marginBottom:'20px' }}>
+          <div style={{ fontSize:'13px', fontWeight:600, marginBottom:'10px' }}>TOU Efficiency — แต่ละฟาร์ม</div>
+          {farmTouData.map((f, i) => (
+            <div key={i} style={{ display:'flex', alignItems:'center', gap:'12px', marginBottom:'8px', fontSize:'12px' }}>
+              <div className={`grade-circle grade-${f.grade}`} style={{ width:28, height:28, fontSize:12, flexShrink:0 }}>{f.grade}</div>
+              <span style={{ minWidth:200, color:'var(--text-1)', fontWeight:500 }}>{f.fname}</span>
+              <div className="progress-bar" style={{ flex:1 }}>
+                <div className="progress-fill" style={{ width:`${f.peakPct}%`, background:f.peakPct>35?'var(--red)':'var(--green)' }} />
+              </div>
+              <span style={{ minWidth:60, textAlign:'right', color:'var(--text-2)', fontFamily:'var(--mono)' }}>On-Peak {f.peakPct}%</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Load Shift Simulator */}
+      <div className="card">
+        <div className="chart-title">⚡ Load Shift Simulator</div>
+        <div style={{ fontSize:'12px', color:'var(--text-3)', marginBottom:'20px' }}>จำลองการย้ายการใช้ไฟจาก On-Peak → Off-Peak เพื่อประหยัดค่าไฟ</div>
+
+        <div className="grid-2" style={{ marginBottom:'20px' }}>
+          <div>
+            <label style={{ fontSize:'12px', color:'var(--text-2)', display:'block', marginBottom:'8px' }}>
+              ย้ายโหลด On-Peak: <span style={{ color:'var(--accent)', fontWeight:600 }}>{shiftPct}%</span>
+            </label>
+            <input type="range" className="slider-track" min={0} max={50} step={1} value={shiftPct} onChange={e => setShiftPct(+e.target.value)} style={{ width:'100%' }} />
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color:'var(--text-3)', marginTop:'4px' }}>
+              <span>0%</span><span>25%</span><span>50%</span>
+            </div>
+          </div>
+          <div>
+            <label style={{ fontSize:'12px', color:'var(--text-2)', display:'block', marginBottom:'8px' }}>
+              TOU Diff Rate: <span style={{ color:'var(--accent)', fontWeight:600 }}>{touRate} ฿/หน่วย</span>
+            </label>
+            <input type="range" className="slider-track" min={0.5} max={3} step={0.01} value={touRate} onChange={e => setTouRate(+e.target.value)} style={{ width:'100%' }} />
+            <div style={{ display:'flex', justifyContent:'space-between', fontSize:'10px', color:'var(--text-3)', marginTop:'4px' }}>
+              <span>0.5</span><span>1.5</span><span>3.0</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid-3">
+          <div style={{ background:'var(--bg-card2)', borderRadius:'var(--r-md)', padding:'14px 16px', textAlign:'center' }}>
+            <div style={{ fontSize:'11px', color:'var(--text-3)', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.06em' }}>ย้ายได้</div>
+            <div style={{ fontSize:'22px', fontWeight:700, color:'var(--amber)' }}>{fmt.num(Math.round(totalPeakKwh * shiftPct/100))} kWh</div>
+          </div>
+          <div style={{ background:'rgba(74,222,128,0.1)', borderRadius:'var(--r-md)', padding:'14px 16px', textAlign:'center', border:'1px solid rgba(74,222,128,0.2)' }}>
+            <div style={{ fontSize:'11px', color:'var(--green)', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.06em' }}>ประหยัด/เดือน</div>
+            <div style={{ fontSize:'22px', fontWeight:700, color:'var(--green)' }}>{fmt.thb(loadShiftSaving)}</div>
+          </div>
+          <div style={{ background:'rgba(56,189,248,0.1)', borderRadius:'var(--r-md)', padding:'14px 16px', textAlign:'center', border:'1px solid rgba(56,189,248,0.2)' }}>
+            <div style={{ fontSize:'11px', color:'var(--accent)', marginBottom:'4px', textTransform:'uppercase', letterSpacing:'0.06em' }}>ประหยัด/ปี (ประมาณ)</div>
+            <div style={{ fontSize:'22px', fontWeight:700, color:'var(--accent)' }}>{fmt.thb(annualEstimate)}</div>
+          </div>
+        </div>
+
+        {loadShiftSaving > 0 && (
+          <div style={{ marginTop:'16px', padding:'12px 16px', background:'rgba(74,222,128,0.05)', borderRadius:'var(--r-md)', border:'1px solid rgba(74,222,128,0.15)', fontSize:'12px', color:'var(--text-2)' }}>
+            💡 หาก{settings?.COMPANY_NAME||'CP Foods'}ย้ายการใช้ไฟ <strong style={{ color:'var(--text-1)' }}>{shiftPct}%</strong> ออกจาก On-Peak ทุกเดือน
+            จะประหยัดได้ <strong style={{ color:'var(--green)' }}>{fmt.thb(annualEstimate)}</strong> ต่อปี
+            คิดจาก On-Peak {fmt.num(Math.round(totalPeakKwh))} kWh × {shiftPct}% × {touRate} ฿/หน่วย × 12 เดือน
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MAIN APP
+// ══════════════════════════════════════════════════════════════
+function App() {
+  const [loggedIn,  setLoggedIn]  = useState(false);
+  const [tab,       setTab]       = useState('overview');
+  const [collapsed, setCollapsed] = useState(false);
+  const [lang,      setLang]      = useState('th');
+  const [dark,      setDark]      = useState(true);
+  const [bills,     setBills]     = useState([]);
+  const [meters,    setMeters]    = useState([]);
+  const [settings,  setSettings]  = useState({});
+  const [loading,   setLoading]   = useState(false);
+  const { toasts, toast } = useToast();
+
+  // load from localStorage fallback
+  const loadLocalData = useCallback(() => {
+    try {
+      const localBills = JSON.parse(localStorage.getItem('enervue_bills_local')||'[]');
+      const localMeters = JSON.parse(localStorage.getItem('enervue_meters_local')||'[]');
+      if (localBills.length) setBills(localBills);
+      if (localMeters.length) setMeters(localMeters);
+    } catch(e) {}
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [b, m, s] = await Promise.all([
+        apiGet('getBills'),
+        apiGet('getMeters'),
+        apiGet('getSettings'),
+      ]);
+      setBills(b || []);
+      setMeters(m || []);
+      setSettings(s || {});
+      // cache locally
+      localStorage.setItem('enervue_bills_local',  JSON.stringify(b||[]));
+      localStorage.setItem('enervue_meters_local', JSON.stringify(m||[]));
+    } catch(e) {
+      // no backend — load from localStorage
+      loadLocalData();
+      // seed meters if empty
+      setMeters(prev => prev.length ? prev : [
+        { ca_no:'020002585465', farm_name:'ศูนย์ปรับปรุงพันธุ์สัตว์น้ำหาดเจ้า', multiplier:1200 },
+        { ca_no:'020018801218', farm_name:'ศูนย์วิจัยเพชรบุรี (135/1)', multiplier:1200 },
+        { ca_no:'020004256878', farm_name:'ศูนย์วิจัยเพชรบุรี (135)', multiplier:1200 },
+        { ca_no:'020003675011', farm_name:'ศูนย์วิจัยหาดเจ้า', multiplier:1200 },
+        { ca_no:'020002616437', farm_name:'ศูนย์วิจัยคลองกิ่ว', multiplier:400 },
+      ]);
+    }
+    setLoading(false);
+  }, [loadLocalData]);
+
+  // Load settings for login screen (no auth required for PROJECT_NAME)
+  useEffect(() => {
+    apiGet('getSettings').then(s => setSettings(s||{})).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (loggedIn) fetchData();
+  }, [loggedIn, fetchData]);
+
+  const NAV = [
+    { id:'overview',  label:'Overview',    icon:'⚡' },
+    { id:'analytics', label:'Analytics',   icon:'📈' },
+    { id:'import',    label:'Import PDF',  icon:'📄' },
+    { id:'report',    label:'Report',      icon:'📋' },
+  ];
+
+  if (!loggedIn) return (
+    <>
+      <LoginScreen onLogin={() => setLoggedIn(true)} settings={settings} />
+      <Toasts toasts={toasts} />
+    </>
+  );
+
+  const tabContent = () => {
+    if (loading) return <LoadingScreen msg="กำลังโหลดข้อมูลจาก Google Sheets..." />;
+    switch(tab) {
+      case 'overview':  return <OverviewTab  bills={bills} meters={meters} settings={settings} lang={lang} />;
+      case 'analytics': return <AnalyticsTab bills={bills} meters={meters} settings={settings} lang={lang} />;
+      case 'import':    return <ImportTab    onImported={fetchData} meters={meters} toast={toast} />;
+      case 'report':    return <ReportTab    bills={bills} meters={meters} settings={settings} toast={toast} lang={lang} />;
+      default:          return null;
+    }
+  };
+
+  return (
+    <>
+      <div className="app-shell">
+        {/* Sidebar */}
+        <nav className={`sidebar ${collapsed?'collapsed':''}`}>
+          <div className="sidebar-logo">
+            <div className="logo-icon">⚡</div>
+            {!collapsed && (
+              <div>
+                <div className="logo-text">EnerVue</div>
+                <div className="logo-sub">ENERGY ANALYTICS</div>
+              </div>
+            )}
+          </div>
+          {NAV.map(n => (
+            <div key={n.id} className={`nav-item ${tab===n.id?'active':''}`} onClick={() => setTab(n.id)}>
+              <span className="nav-icon">{n.icon}</span>
+              {!collapsed && <span>{n.label}</span>}
+            </div>
+          ))}
+          <div className="sidebar-bottom">
+            <button className="sidebar-toggle" onClick={() => setLang(l => l==='th'?'en':'th')} title="Toggle Language">
+              {collapsed ? '🌐' : `🌐 ${lang.toUpperCase()}`}
+            </button>
+            <button className="sidebar-toggle" onClick={() => setCollapsed(c => !c)} title="Toggle Sidebar">
+              {collapsed ? '→' : '← พับ'}
+            </button>
+            <button className="sidebar-toggle" style={{ fontSize:11 }} onClick={() => setLoggedIn(false)}>
+              {collapsed ? '⬡' : '↩ ออกจากระบบ'}
+            </button>
+          </div>
+        </nav>
+
+        {/* Main */}
+        <main className="main-content">
+          {tabContent()}
+        </main>
+      </div>
+
+      {/* Mobile Bottom Nav */}
+      <nav className="mobile-nav">
+        <div className="mobile-nav-inner">
+          {NAV.map(n => (
+            <div key={n.id} className={`mobile-nav-item ${tab===n.id?'active':''}`} onClick={() => setTab(n.id)}>
+              <span className="mobile-nav-icon">{n.icon}</span>
+              <span>{n.label.split(' ')[0]}</span>
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      <Toasts toasts={toasts} />
+    </>
+  );
+}
+
+// ── PDF.js worker setup ───────────────────────────────────────
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
