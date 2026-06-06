@@ -1032,30 +1032,33 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
 
   const filtered = useMemo(() => {
     let d = bills;
-    if (filterYear !== 'all') d = d.filter(b => String(b.year) === filterYear);
-    if (filterFarm !== 'all') d = d.filter(b => b.ca_no === filterFarm);
+    if (filterYear !== 'all') d = d.filter(b => String(b.year) === String(filterYear));
+    if (filterFarm !== 'all') d = d.filter(b => String(b.ca_no) === String(filterFarm));
     return d;
   }, [bills, filterYear, filterFarm]);
 
-  // Monthly trend per farm — ใช้ ca_no เป็น key เพื่อความ consistent
+  // farmKeys จาก filtered — ใช้ index จาก all bills เพื่อสีคงที่
+  const allCaList = useMemo(() =>
+    ['020002585465','020018801218','020004256878','020003675011','020002616437'],
+  []);
+
   const farmKeys = useMemo(() => {
-    const cas = [...new Set(filtered.map(b => b.ca_no))];
-    return cas.map((ca, i) => ({
+    const cas = [...new Set(filtered.map(b => String(b.ca_no)))];
+    return cas.map(ca => ({
       ca,
-      label: meterMap[ca]?.farm_name || ca,
-      color: FARM_COLORS[
-        ['020002585465','020018801218','020004256878','020003675011','020002616437'].indexOf(ca) % FARM_COLORS.length
-      ] || FARM_COLORS[i % FARM_COLORS.length]
+      label: meterMap[ca]?.farm_name || bills.find(b => String(b.ca_no)===ca)?.farm_name || ca,
+      color: FARM_COLORS[allCaList.indexOf(ca) >= 0 ? allCaList.indexOf(ca) : 0]
     }));
-  }, [filtered, meterMap]);
+  }, [filtered, meterMap, bills, allCaList]);
 
   const monthlyData = useMemo(() => {
     const grouped = {};
     filtered.forEach(b => {
       const key = `${b.year}-${String(b.month).padStart(2,'0')}`;
       if (!grouped[key]) grouped[key] = { label: M[Number(b.month)]+' '+String(b.year).slice(-2) };
+      const ca  = String(b.ca_no);
       const val = Number(b[chartMetric==='thb'?'total_thb':chartMetric==='kwh'?'kwh_total':'peak_kw']||0);
-      grouped[key][b.ca_no] = (grouped[key][b.ca_no]||0) + val;
+      grouped[key][ca] = (grouped[key][ca]||0) + val;
     });
     return Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([,v]) => v);
   }, [filtered, chartMetric, meterMap, lang]);
@@ -1105,18 +1108,25 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
   const rankData = useMemo(() => {
     const r = {};
     filtered.forEach(b => {
-      const fname = (meterMap[b.ca_no]?.farm_name||b.farm_name||b.ca_no).replace('ศูนย์','ศ.');
-      if (!r[b.ca_no]) r[b.ca_no] = { name: fname, thb:0, kwh:0 };
-      r[b.ca_no].thb += Number(b.total_thb||0);
-      r[b.ca_no].kwh += Number(b.kwh_total||0);
+      const ca    = String(b.ca_no);
+      const fname = meterMap[ca]?.farm_name || b.farm_name || ca;
+      if (!r[ca]) r[ca] = { name: fname, thb:0, kwh:0 };
+      r[ca].thb += Number(b.total_thb||0);
+      r[ca].kwh += Number(b.kwh_total||0);
     });
     return Object.values(r).sort((a,b) => b.thb - a.thb);
   }, [filtered, meterMap]);
 
-  const allFarmNames = useMemo(() => [...new Set(bills.map(b => b.ca_no))].map(ca => ({
-    ca_no: ca,
-    name: meterMap[ca]?.farm_name || ca
-  })), [bills, meterMap]);
+  const allFarmNames = useMemo(() => {
+    const cas = [...new Set(bills.map(b => String(b.ca_no)))];
+    return allCaList
+      .filter(ca => cas.includes(ca))
+      .concat(cas.filter(ca => !allCaList.includes(ca)))
+      .map(ca => ({
+        ca_no: ca,
+        name: meterMap[ca]?.farm_name || bills.find(b => String(b.ca_no)===ca)?.farm_name || ca
+      }));
+  }, [bills, meterMap, allCaList]);
 
   const yoyYears = useMemo(() => [...new Set(bills.map(b => `ปี ${b.year}`))].sort(), [bills]);
   const yoyColors = ['#38bdf8','#4ade80','#fbbf24','#f472b6'];
@@ -1169,7 +1179,9 @@ function AnalyticsTab({ bills, meters, settings, lang }) {
             {farmKeys.map((fk) => (
               <Line key={fk.ca} type="monotone" dataKey={fk.ca} name={fk.label}
                 stroke={fk.color} strokeWidth={2}
-                dot={false} activeDot={{ r:4 }} connectNulls={true} />
+                dot={{ fill: fk.color, r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 5 }}
+                connectNulls={true} />
             ))}
           </LineChart>
         </ResponsiveContainer>
